@@ -1,0 +1,10 @@
+dist/
+build/
+*.o
+*.dSYM/
+.DS_Store
+._*
+.continuity-keeper/
+niuma-widget-codex/
+PROGRESS.md
+CONTINUITY_TASKS.md
