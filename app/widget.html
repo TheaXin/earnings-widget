@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>牛马鼓励器</title>
+<style>
+/* ============================================================
+   牛马鼓励器 · 设计令牌 · Berry Milk 蓝莓奶昔
+   ============================================================ */
+:root{
+  --font-round: ui-rounded, "SF Pro Rounded", "Yuanti SC", "PingFang SC", -apple-system, sans-serif;
+  --font-sans:  "Yuanti SC", "PingFang SC", -apple-system, sans-serif;
+
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px;
+
+  --ease-spring: cubic-bezier(.34,1.56,.64,1);
+  --ease-out-quart: cubic-bezier(.25,1,.5,1);
+  --ease-out-expo:  cubic-bezier(.16,1,.3,1);
+  --dur-fast:160ms; --dur-base:340ms; --dur-slow:820ms;
+
+  /* 8.5 = 系统桌面小组件的内缩量：窗口 360×180 里画出来的卡片是 343×163。
+     必须和原生 kPad 一致，否则窗口留白和卡片对不上，跟隔壁组件永远差半个格。 */
+  --pad:8.5px;
+  --r-card:28px;
+}
+
+/* ---------- 主题色：单一色相，控制台注入 --h ---------- */
+:root{ --h: 255; }
+
+/* ---------- 日间 ---------- */
+html[data-theme="light"]{
+  /* 中性色：极低彩度，但带主色倾向，避免与品牌色脱节
+     二级/三级灰比"常规"压深一档：卡片背后是活的桌面，字太小一浅就化在壁纸里 */
+  /* 对齐桌面上那几张卡：它们是"蓝紫玻璃 + 纯白字"，不是"奶白纸 + 深字"。
+     深色字在浅色窗口前还清楚，一旦壁纸变蓝就变成一块灰纸，所以整转白字。 */
+  /* 主文字纯白；辅文字不压灰，直接用"浅主题色"。
+     之前 ink-2/ink-3 是近乎无彩的浅灰蓝，压在蓝紫壁纸上会读成"脏白"，
+     既不如白字亮，也没有颜色，夹在中间最难看。 */
+  --ink:      oklch(100% 0 0);
+  --ink-2:    oklch(90% .130 var(--h));
+  --ink-3:    oklch(82% .145 var(--h));
+  --txt-halo: oklch(14% .050 var(--h) / .48);
+  --line:     oklch(100% 0 0 / .20);
+  --edge:     oklch(100% 0 0 / .22);
+  --card-a:   oklch(100% 0 0 / .06);
+  --card-b:   oklch(100% 0 0 / .02);
+
+  /* 品牌双色 */
+  /* 白字底上，品牌色只能往"浅光"走；原来的 62% 深紫压在白字旁边会发脏 */
+  --accent:      oklch(93% .100 var(--h));
+  --accent-2:    oklch(96% .060 var(--h));
+  --accent-soft: oklch(100% 0 0 / .18);
+  --accent-ink:  oklch(97% .020 var(--h));
+
+  --mint:#4FCBB0; --mint-soft:#DDF6EF;
+  --lemon:#E9A400; --lemon-soft:#FFF1CB;
+
+  --shadow: 0 2px 0 oklch(33% .02 var(--h) / .03), 0 14px 28px -14px oklch(33% .03 var(--h) / .28);
+  --dot:    oklch(62% .15 var(--h) / .13);
+  --face-bg:   oklch(99.2% .016 82);
+  --face-edge: oklch(100% 0 0 / .55);
+  --face-ink:  oklch(42% .040 var(--h));   /* 脸是白的，五官必须钉死深色 */
+
+  /* 玻璃层：暖奶油固定色（不跟随主题色，否则冷色主题会把卡片染成灰蓝）
+     透射靠原生磨砂的 alphaValue 兜底，这里只留"一层光"，不再刷奶膜 */
+  /* 用户壁纸本身就是蓝紫，卡片一律纯透明，颜色全部由壁纸给出。
+     所以这里只敢留"一点点顶光 + 一根细白边"，绝不加底色。 */
+  --glass-1:    oklch(100% 0 0 / .055);
+  --glass-2:    oklch(100% 0 0 / .015);
+  --glass-tint: oklch(100% 0 0 / .050);
+  --glass-edge: oklch(100% 0 0 / .22);
+  --glass-hair: oklch(100% 0 0 / .10);
+  --glass-sheen:oklch(100% 0 0 / .30);
+  --glass-spec: oklch(100% 0 0 / .20);
+  --glass-blur: 26px;
+  /* 倒计时胶囊：独立于主题的"小玻璃片"，日间浅、夜间深 */
+  --chip:       oklch(100% 0 0 / .20);
+  --chip-edge:  oklch(100% 0 0 / .28);
+  --chip-shade: oklch(20% .040 var(--h) / .14);
+  --track:      oklch(100% 0 0 / .24);
+  --track-hi:   oklch(100% 0 0 / .72);
+  --grain: .034;
+}
+
+/* ---------- 玻璃浓度：同一套材质，三档通透度 ----------
+   thin  = 近乎只是磨砂，壁纸颜色全额透出（最像玻璃，适合干净壁纸）
+   standard = 默认，奶白薄纱 + 染色
+   thick = 文字优先，背景压暗压白（适合花壁纸或强迫症） */
+html[data-glass="thin"]{
+  --glass-1:    oklch(100% 0 0 / .004);
+  --glass-2:    oklch(97.5% .012 82 / .002);
+  --glass-tint: oklch(99% .030 84 / .014);
+  --glass-edge: oklch(100% 0 0 / .26);   /* 边框一白就显得"有面"，通透档要收 */
+  --glass-blur: 46px;
+  --grain: .008;
+}
+html[data-glass="thick"]{
+  --glass-1:    oklch(100% 0 0 / .42);
+  --glass-2:    oklch(96% .014 82 / .30);
+  --glass-tint: oklch(99% .030 84 / .22);
+  --glass-blur: 18px;
+  --grain: .055;
+}
+
+*{box-sizing:border-box; margin:0; padding:0; -webkit-user-select:none; user-select:none;}
+html,body{height:100%; background:transparent; overflow:hidden;}
+/* 控制台里的小预览：不垫底就是白底白字，等于看不见。
+   取的是用户壁纸那一档蓝紫，不改卡片本身的透明属性。 */
+html[data-pv="1"] body{
+  background:
+    radial-gradient(120% 100% at 88% -16%, oklch(70% .150 292 / .92), transparent 64%),
+    linear-gradient(162deg, oklch(56% .180 268) 0%, oklch(44% .175 285) 100%);
+}
+body{
+  padding:var(--pad);
+  font-family:var(--font-sans);
+  -webkit-font-smoothing:antialiased;
+  color:var(--ink);
+}
+
+/* ============================================================
+   卡片
+   ============================================================ */
+.card{
+  position:relative; height:100%; width:100%;
+  border-radius:var(--r-card);
+  background:
+    radial-gradient(122% 92% at 8% -18%, var(--glass-tint) 0%, transparent 60%),
+    linear-gradient(168deg, var(--glass-1) 0%, var(--glass-2) 100%);
+  border:1px solid var(--glass-edge);
+  /* 投影必须收在 --pad(8.5px) 内，否则被窗口留白裁掉 → 变成一圈灰晕，等于没有悬浮感。
+     贴地那层 0 1px 的深影在亮壁纸上会读成"第二道边框"（用户说的重影），
+     所以全部外影都往外推一档、去掉 0.5px 描边，只留一条柔和的落影。 */
+  box-shadow:
+    inset 0 1.4px 0 var(--glass-sheen),
+    inset 0 -1.4px 0 oklch(28% .030 var(--h) / .10),
+    inset 1px 0 0 oklch(100% 0 0 / .12),
+    inset -1px 0 0 oklch(28% .030 var(--h) / .07),
+    inset 0 -11px 18px -15px oklch(20% .03 var(--h) / .26),
+    0 2px 4px -2px  oklch(22% .03 var(--h) / .12),
+    0 6px 10px -8px oklch(22% .03 var(--h) / .16);
+  /* 二次模糊：原生 NSVisualEffectView 以低 alpha 混合时，会把"未模糊的桌面"
+     一起放进来（表现为能看穿色块的锐利直角）。这一层把合成结果再糊一次，
+     于是既保住了真实穿透，又不露锐边。 */
+  /* 这里刻意不用 CSS backdrop-filter：
+     无边框透明窗口里它采样不到真正的桌面，只会把元素自己涂上一层灰膜，
+     实测就是"玻璃发灰像塑料"的元凶。真正的磨砂交给原生 NSVisualEffectView。 */
+  overflow:hidden;
+  cursor:grab;
+  display:grid; grid-template-rows:auto 1fr;
+  animation:popIn var(--dur-slow) var(--ease-spring) both;
+  isolation:isolate;
+}
+/* 玻璃颗粒：真实玻璃有微纹理，纯渐变的平滑感才是"塑料"的来源 */
+.card::before{
+  content:""; position:absolute; inset:0; z-index:1;
+  border-radius:inherit; pointer-events:none;
+  opacity:var(--grain);
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='140' height='140' filter='url(%23n)'/></svg>");
+  background-size:140px 140px;
+  mix-blend-mode:overlay;
+}
+/* 玻璃高光：一束偏左的顶部聚光 + 左上斜射，这是"受光方向"的唯一来源 */
+.card::after{
+  content:""; position:absolute; inset:0; z-index:1;
+  border-radius:inherit; pointer-events:none;
+  background:
+    radial-gradient(55% 10% at 21% -1%, oklch(100% 0 0 / .43), transparent 82%),
+    radial-gradient(12% 29% at 0% 8%, oklch(100% 0 0 / .16), transparent 78%);
+}
+/* 折射边：上边近乎全亮、右上急速衰减、底边只回一点点反光 ——
+   一侧亮一侧暗，"厚度"才成立；全周等亮只会像描了一道塑料边 */
+.rim{
+  position:absolute; inset:0; z-index:3; border-radius:inherit; pointer-events:none;
+  padding:1px;
+  background:linear-gradient(158deg,
+    oklch(100% 0 0 / .98) 0%,
+    oklch(100% 0 0 / .58) 7%,
+    oklch(100% 0 0 / .14) 22%,
+    oklch(100% 0 0 / .05) 48%,
+    oklch(100% 0 0 / .10) 68%,
+    oklch(100% 0 0 / .34) 86%,
+    oklch(100% 0 0 / .72) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite:exclude;
+}
+/* 通透档：把"奶油纸感"的三层白都调薄，只留光，不留膜。
+   越透的卡片越依赖边缘那一道光来确认边界，所以折射边不取消、只压低。 */
+html[data-glass="thin"] .card{
+  box-shadow:
+    inset 0 1px 0 oklch(100% 0 0 / .30),
+    inset 0 -1px 0 oklch(28% .030 var(--h) / .06),
+    inset 1px 0 0 oklch(100% 0 0 / .08),
+    inset -1px 0 0 oklch(28% .030 var(--h) / .05),
+    0 2px 4px -2px  oklch(22% .03 var(--h) / .10),
+    0 6px 10px -8px oklch(22% .03 var(--h) / .16);
+}
+html[data-glass="thin"] .card::after{
+  background:
+    radial-gradient(32% 19% at 23% -5%, oklch(100% 0 0 / .15), transparent 76%),
+    linear-gradient(152deg, oklch(100% 0 0 / .05) 0%, transparent 23%);
+}
+html[data-glass="thin"] .rim{
+  background:linear-gradient(158deg,
+    oklch(100% 0 0 / .92) 0%,
+    oklch(100% 0 0 / .40) 7%,
+    oklch(100% 0 0 / .08) 22%,
+    oklch(100% 0 0 / .03) 48%,
+    oklch(100% 0 0 / .06) 68%,
+    oklch(100% 0 0 / .22) 86%,
+    oklch(100% 0 0 / .50) 100%);
+}
+.card:active{cursor:grabbing;}
+@keyframes popIn{
+  from{opacity:0; transform:scale(.93) translateY(8px);}
+  to{opacity:1; transform:scale(1) translateY(0);}
+}
+.dots{
+  position:absolute; inset:0; pointer-events:none;
+  background-image:radial-gradient(var(--dot) 1.2px, transparent 1.2px);
+  background-size:15px 15px;
+  mask-image:radial-gradient(110% 90% at 100% 100%, #000 0%, transparent 62%);
+  -webkit-mask-image:radial-gradient(110% 90% at 100% 100%, #000 0%, transparent 62%);
+  opacity:.55;
+}
+
+/* ---------- 管理入口：右下角小齿轮 ----------
+   双击 / 右键卡片一直都能开控制台，但那是"知道的人才知道"的入口。
+   这颗齿轮是唯一的可视线索：常态压到很淡（读起来像玻璃上的一个凹点），
+   指针靠近卡片时提亮，既补了可发现性，又不抢主数字的视觉重量。 */
+/* 右下角两颗工具键：锁 + 齿轮。并排在一个容器里，
+   免得后面再加按钮时要一个个去算绝对坐标。 */
+.tools{
+  /* 10px 起步是算出来的：圆角 28 时，卡角弧线在 (8.2,8.2) 处穿过对角线，
+     贴 7px 放会让按键自己那圈描边和卡片折射边交叉，看起来就是"重影" */
+  position:absolute; z-index:6; right:10px; bottom:10px;
+  display:flex; align-items:center; gap:6px;
+}
+.gear, .lock{
+  width:23px; height:23px; padding:0; border:0; border-radius:9px;
+  display:grid; place-items:center; -webkit-appearance:none; appearance:none;
+  background:var(--chip); color:var(--ink-2);
+  box-shadow:inset 0 0 0 1px var(--chip-edge);
+  opacity:.26; cursor:pointer;
+  transition:opacity 220ms var(--ease-out-quart),
+             background 180ms linear,
+             color 160ms linear;
+}
+.gear svg, .lock svg{width:14px; height:14px; display:block; opacity:.92;}
+.card:hover .gear, .card:hover .lock{opacity:.95;}
+.gear:hover, .lock:hover{color:var(--accent-ink);}
+.card:hover .gear:active, .card:hover .lock:active{transform:scale(.9);}
+
+/* 固定态：一层透明遮罩盖住整张卡。
+   锁定时点卡片任何地方都不该有反应（拖动、双击开控制台、右键、喝水键），
+   与其在每个 handler 里各写一遍判断，不如让遮罩把事件整个吞掉；
+   两颗工具键 z-index 更高，留在遮罩上面照常可点。 */
+.shield{
+  position:absolute; inset:0; z-index:4; display:none;
+  border-radius:inherit; cursor:default;
+}
+.card[data-locked="1"] .shield{display:block;}
+
+/* 锁着的时候必须常驻可见——不然用户会以为"拖不动是坏了"，
+   找不到原因就永远解不开。 */
+.card[data-locked="1"] .lock{
+  opacity:1; color:var(--accent-ink);
+  background:oklch(100% 0 0 / .34);
+  box-shadow:inset 0 0 0 1px oklch(100% 0 0 / .50), 0 1px 3px var(--chip-shade);
+}
+/* 锁定时整张卡不再显示"可抓"的手型 */
+.card[data-locked="1"]{cursor:default;}
+.lock .ico-on{display:none;}
+.card[data-locked="1"] .ico-off{display:none;}
+.card[data-locked="1"] .ico-on{display:block;}
+
+/* ---------- 顶栏 ---------- */
+.topbar{
+  position:relative; z-index:2;
+  display:flex; align-items:center; gap:8px;
+  padding:11px 14px 0;
+  flex:0 0 auto;
+}
+.mascot{width:27px; height:27px; flex:0 0 auto; margin-top:-3px;
+  filter:drop-shadow(0 1px 1.6px oklch(30% .03 var(--h) / .16));}
+.mascot svg{width:100%; height:100%; overflow:visible; display:block;}
+/* 自定义小表情：占满整个 .mascot 方块，行高压到 1 免得基线把字顶偏 */
+.mascot-emoji{display:none; width:100%; height:100%; font-size:24px; line-height:1;
+  align-items:center; justify-content:center; text-align:center;
+  transform:translateY(-.5px);}
+.mascot.is-emoji svg{display:none;}
+.mascot.is-emoji .mascot-emoji{display:flex;}
+.face-bg{fill:var(--face-bg); stroke:var(--face-edge); stroke-width:1.4;}
+.eye{fill:var(--face-ink);}
+/* 腮红固定暖粉：这是「可爱」的信号色，不该跟着主题色漂移 */
+.blush{fill:oklch(80% .095 25); opacity:.78;}
+.mouth{fill:none; stroke:var(--face-ink); stroke-width:1.8; stroke-linecap:round;}
+.eyes{transform-origin:24px 22px; animation:blink 6.5s infinite;}
+@keyframes blink{
+  0%,92%,100%{transform:scaleY(1);}
+  95%{transform:scaleY(.1);}
+}
+.eye-open{opacity:1;} .eye-happy,.eye-star,.eye-half{opacity:0;}
+.card[data-state="lunch"] .eye-open{opacity:0;}
+.card[data-state="lunch"] .eye-happy{opacity:1;}
+.card[data-state="done"] .eye-open{opacity:0;}
+.card[data-state="done"] .eye-star{opacity:1;}
+.card[data-state="off"] .eye-open{opacity:0;}
+.card[data-state="off"] .eye-happy{opacity:1;}
+.card[data-state="before"] .eye-open{opacity:0;}
+.card[data-state="before"] .eye-half{opacity:1;}
+
+.status{display:flex; align-items:baseline; gap:7px; min-width:0; flex:1;}
+.status b{
+  font-size:12px; font-weight:600; color:var(--ink);
+  letter-spacing:.02em; white-space:nowrap;
+}
+.status .sub{
+  font-size:10.5px; color:var(--ink-2); white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis;
+}
+.clock{
+  font-family:var(--font-round); font-variant-numeric:tabular-nums;
+  font-size:11.5px; font-weight:700; color:var(--ink-2);
+  letter-spacing:.02em; flex:0 0 auto;
+}
+
+/* ============================================================
+   主体
+   ============================================================ */
+.body{
+  position:relative; z-index:2;
+  display:flex; flex-direction:column; justify-content:center;
+  gap:0; padding:4px 15px 14px;
+  min-width:0;
+}
+
+/* ---------- 信息列 ---------- */
+.money-block{min-width:0; display:flex; flex-direction:column; justify-content:center; gap:2px;}
+
+.amount{
+  font-family:var(--font-round); font-variant-numeric:tabular-nums;
+  font-weight:800; letter-spacing:-.03em; line-height:1.02;
+  color:var(--ink); display:flex; align-items:baseline; white-space:nowrap;
+  /* 金额是最不能糊的一行：白字压在白色窗口上会整块消失，所以给它一条
+     更实的深色轮廓（大字反而不适合细描边，靠 2px 柔影 + 1px 紧影兜） */
+  text-shadow:
+    0 0 1px oklch(12% .045 var(--h) / .60),
+    0 1px 3px oklch(12% .045 var(--h) / .55),
+    0 0 8px oklch(12% .045 var(--h) / .30);
+}
+.amount .cur{font-size:.5em; font-weight:800; color:var(--accent-ink); margin-right:.12em; letter-spacing:-.01em;}
+.amount .dec{font-size:.56em; font-weight:700; color:var(--ink-2);}
+.amount.bump{animation:bump var(--dur-base) var(--ease-spring);}
+@keyframes bump{
+  0%{transform:translateY(0);}
+  35%{transform:translateY(-2.5px);}
+  100%{transform:translateY(0);}
+}
+.amount.bump .dec{color:var(--accent);}
+/* 标签放在金额上面：先说这是"什么钱"，再报数字；
+   同一行末尾挂累积工时，不再多占一行高度 */
+.capline{display:flex; align-items:baseline; gap:6px; white-space:nowrap; margin-bottom:1px;}
+.cap{font-size:11px; font-weight:600; color:var(--ink-2); letter-spacing:.01em; white-space:nowrap;}
+.wt{
+  font-family:var(--font-round); font-variant-numeric:tabular-nums;
+  font-size:10.5px; font-weight:700; color:var(--ink-3); letter-spacing:.01em;
+}
+.wt::before{content:"·"; margin-right:5px;}
+
+/* 本月已成金额：只报数，不做比例、不做进度条 */
+.monthline{
+  display:flex; align-items:baseline; gap:5px;
+  font-size:11px; font-weight:500; color:var(--ink-2); white-space:nowrap;
+  margin-top:4px;
+}
+.monthline b{
+  font-family:var(--font-round); font-variant-numeric:tabular-nums;
+  font-size:13px; font-weight:800; color:var(--ink); letter-spacing:-.015em;
+}
+/* 本月累积工时：跟"本月金额"同一行，不额外占高度 */
+.monthline .wtm{
+  font-family:var(--font-round); font-variant-numeric:tabular-nums;
+  font-size:10.5px; font-weight:700; color:var(--ink-3); letter-spacing:.01em;
+}
+.monthline .wtm::before{content:"·"; margin-right:5px;}
+
+/* 喝水数字里的 "/4 杯" 与升数：窄版只留杯数，升数收起 */
+.wmeta .of{color:var(--ink-3); margin:0 1px;}
+
+/* 倒计时组：可以只有一栏（距下班 / 距开工 / 距发薪），
+   也可以是"距午休 · 距下班"两栏。
+   两栏时把标签压到时间上面，否则横排会超出 288 宽的卡片。 */
+.cds{
+  display:flex; align-items:center;
+  padding:4px 10px; border-radius:99px;
+  background:var(--chip); color:var(--ink);
+  box-shadow:inset 0 0 0 1px var(--chip-edge),
+             0 1px 2px var(--chip-shade);
+  min-width:0;
+}
+.cd{display:flex; align-items:baseline; gap:5px; white-space:nowrap; min-width:0;}
+.cd .k{font-size:11px; font-weight:600; color:var(--ink-2);}
+.cd b{
+  font-family:var(--font-round); font-variant-numeric:tabular-nums;
+  font-size:12.5px; font-weight:800; color:var(--accent-ink); letter-spacing:-.01em;
+}
+.cds.multi{padding:3px 10px; gap:9px;}
+.cds.multi .cd{flex-direction:column; align-items:flex-start; gap:0; line-height:1.12;}
+.cds.multi .cd + .cd{padding-left:9px; box-shadow:inset 1px 0 0 var(--chip-edge);}
+
+/* 午休不是"还要干多久"，是"还能歇多久" —— 换成主色薄底，一眼区分 */
+.cds[data-variant="break"]{background:var(--accent-soft);}
+.cds[data-variant="break"] .cd b{color:var(--ink);}
+/* 收工 / 未开工：数字不再跳动，收成安静的灰 */
+.cds[data-variant="done"] .cd b,
+.cds[data-variant="before"] .cd b{color:var(--ink-2); font-weight:700;}
+
+/* ---------- 底部一行：倒计时 + 喝水 ---------- */
+.foot{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px; margin-top:9px;
+}
+
+/* 喝水：一颗实体"−"、一排小水滴、一颗实体"＋"。
+   撤回必须是看得见的一颗按键，不能藏在右键或长按里。 */
+.water{
+  display:inline-flex; align-items:center; gap:6px;
+  margin-right:4px;
+}
+.wbtn{
+  width:18px; height:18px; padding:0; border:0; border-radius:6px;
+  display:grid; place-items:center; flex:0 0 auto;
+  background:var(--chip); color:var(--ink-2);
+  box-shadow:inset 0 0 0 1px var(--chip-edge), 0 1px 2px var(--chip-shade);
+  font-family:var(--font-round); font-size:12px; font-weight:800; line-height:1;
+  cursor:pointer; -webkit-appearance:none; appearance:none;
+  transition:color 140ms linear, transform 140ms var(--ease-spring), opacity 140ms linear;
+}
+.wbtn:hover{color:var(--accent-ink);}
+.wbtn:active{transform:scale(.88);}
+.wbtn:disabled{opacity:.3; cursor:default;}
+.wbtn:disabled:hover{color:var(--ink-2);}
+.drops{display:inline-flex; align-items:center; gap:3px;}
+.drops svg{width:9px; height:11px; display:block; overflow:visible;}
+.drops path{
+  fill:var(--ink-3); opacity:.38;
+  transition:fill 220ms var(--ease-out-quart), opacity 220ms var(--ease-out-quart);
+}
+.drops .on path{fill:var(--accent); opacity:1;}
+.water .wmeta{
+  font-family:var(--font-round); font-variant-numeric:tabular-nums;
+  font-size:10.5px; font-weight:700; color:var(--ink-2); letter-spacing:.01em;
+  white-space:nowrap;
+}
+.water .wmeta b{color:var(--ink); font-weight:800;}
+.water.done .wmeta b{color:var(--accent-ink);}
+/* 刚记一杯：水滴弹一下 */
+.drops .pop{animation:dropPop 420ms var(--ease-spring);}
+@keyframes dropPop{
+  0%{transform:translateY(0) scale(1);}
+  40%{transform:translateY(-3px) scale(1.28);}
+  100%{transform:translateY(0) scale(1);}
+}
+
+.quip{
+  font-size:11.5px; line-height:1.5; color:var(--ink-2);
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.quip em{font-style:normal; color:var(--accent-ink); font-weight:700;}
+
+/* ============================================================
+   尺寸适配
+   ============================================================ */
+/* ============================================================
+   三档尺寸：小 170×170 / 中 360×170 / 大 360×360
+   ============================================================ */
+
+/* 中：360 × 170 —— 横向长方形。跟大号同宽，所以左右留白要一致 */
+html[data-size="medium"] .topbar{padding:11px 18px 0;}
+html[data-size="medium"] .mascot{width:24px; height:24px;}
+html[data-size="medium"] .mascot-emoji{font-size:21px;}
+html[data-size="medium"] .status b{font-size:12px;}
+html[data-size="medium"] .status .sub{font-size:10px;}
+html[data-size="medium"] .clock{font-size:11px;}
+/* 中号改成两栏：左边金额三行、右边倒计时竖排。
+   原来是四行全挤在左半边，右边一大片空着，而底部"倒计时 + 喝水 + 两颗按钮"
+   又都塞在一行里 —— 又空又挤。倒计时挪到右栏之后，底部只留喝水，气就通了。 */
+html[data-size="medium"] .body{
+  flex:1; display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  grid-template-rows:auto auto;
+  column-gap:14px; row-gap:8px;
+  align-content:center; align-items:center;
+  padding:2px 18px 12px;
+}
+html[data-size="medium"] .money-block{grid-column:1; grid-row:1; align-items:flex-start; gap:0;}
+/* 拆掉 .foot 这层 flex，把倒计时和喝水直接放进上面的格子 */
+html[data-size="medium"] .foot{display:contents;}
+html[data-size="medium"] .amount{font-size:32px;}
+html[data-size="medium"] .cap{font-size:11.5px;}
+html[data-size="medium"] .wt{font-size:10.5px;}
+html[data-size="medium"] .monthline{font-size:11.5px; margin-top:3px; gap:6px;}
+html[data-size="medium"] .monthline b{font-size:14px;}
+html[data-size="medium"] .monthline .wtm{font-size:10.5px;}
+/* 右栏：倒计时不再挤成一颗胶囊横躺，改成两行右对齐的小表
+   （标签一列、数值一列，右沿对齐，扫一眼就能比大小） */
+html[data-size="medium"] .cds{
+  grid-column:2; grid-row:1 / span 2; justify-self:end; align-self:center;
+  display:flex; flex-direction:column; align-items:flex-end;
+  gap:3px; padding:0; background:none; box-shadow:none; border-radius:0;
+}
+html[data-size="medium"] .cds.multi{gap:3px; padding:0;}
+/* 每行是「标签 + 数值」，整块右对齐 → 数值右沿永远在一条竖线上 */
+html[data-size="medium"] .cds .cd{flex-direction:row; align-items:baseline; gap:8px;}
+html[data-size="medium"] .cds .cd + .cd{padding-left:0; box-shadow:none;}
+/* 标签给固定宽度并右对齐：两行的标签左沿才在一条线上（数值已经右对齐了） */
+html[data-size="medium"] .cd .k{font-size:10.5px; line-height:1.4; min-width:4em; text-align:right;}
+html[data-size="medium"] .cd b{font-size:14px;}
+/* 喝水留在左下角，把右下角让给锁和齿轮（原来三样东西抢一块地） */
+html[data-size="medium"] .water{
+  grid-column:1; grid-row:2; justify-self:start;
+  gap:6px; margin-right:0;
+}
+html[data-size="medium"] .wbtn{width:19px; height:19px; border-radius:6px; font-size:12px;}
+html[data-size="medium"] .drops{gap:3px;}
+html[data-size="medium"] .drops svg{width:9px; height:11px;}
+html[data-size="medium"] .water .wmeta{font-size:10.5px;}
+html[data-size="medium"] .tools{right:10px; bottom:10px; gap:4px;}
+html[data-size="medium"] .gear, html[data-size="medium"] .lock{width:19px; height:19px; border-radius:7px;}
+html[data-size="medium"] .gear svg, html[data-size="medium"] .lock svg{width:11px; height:11px;}
+html[data-size="medium"] .quip{display:none;}
+
+/* 小：170 × 170 窗口 / 163 × 163 卡片 —— 正方形，可用宽只有 146，只留核心信息 */
+html[data-size="small"] .topbar{padding:10px 12px 0; gap:5px;}
+html[data-size="small"] .mascot{width:20px; height:20px;}
+html[data-size="small"] .mascot-emoji{font-size:18px;}
+html[data-size="small"] .status b{font-size:10.5px;}
+html[data-size="small"] .status .sub{display:none;}
+html[data-size="small"] .clock{font-size:9.5px;}
+html[data-size="small"] .card{border-radius:24px;}
+html[data-size="small"] .body{
+  flex:1; flex-direction:column; align-items:stretch; justify-content:center;
+  gap:0; padding:1px 12px 10px;
+}
+html[data-size="small"] .money-block{gap:0; align-items:center;}
+html[data-size="small"] .amount{font-size:26px;}
+html[data-size="small"] .cap{font-size:9.5px;}
+html[data-size="small"] .wt{font-size:9px;}
+/* 小号只剩 163 高：本月那行让给倒计时/喝水，否则最后一行会压到右下角的锁和齿轮上 */
+html[data-size="small"] .monthline{display:none;}
+html[data-size="small"] .foot{margin-top:7px; flex-direction:column; align-items:center; gap:6px;}
+html[data-size="small"] .cds{padding:3px 9px;}
+html[data-size="small"] .cds.multi{gap:7px; padding:2px 8px;}
+html[data-size="small"] .cds.multi .cd + .cd{padding-left:7px;}
+html[data-size="small"] .cd .k{font-size:9px;}
+html[data-size="small"] .cd b{font-size:11px;}
+html[data-size="small"] .water{gap:4px; margin-right:0;}
+html[data-size="small"] .drops{gap:2px;}
+html[data-size="small"] .drops svg{width:7px; height:9px;}
+html[data-size="small"] .water .liter{display:none;}
+html[data-size="small"] .wbtn{width:16px; height:16px; border-radius:5px; font-size:11px;}
+html[data-size="small"] .water .wmeta{font-size:9px;}
+html[data-size="small"] .tools{right:8px; bottom:8px; gap:3px;}
+html[data-size="small"] .gear, html[data-size="small"] .lock{width:16px; height:16px; border-radius:5px;}
+html[data-size="small"] .gear svg, html[data-size="small"] .lock svg{width:9px; height:9px;}
+html[data-size="small"] .quip{display:none;}
+
+/* 大：360 × 360 窗口 / 343 × 343 卡片 —— 大正方形，竖直方向可以舒展，语录回来 */
+html[data-size="large"] .topbar{padding:17px 20px 0;}
+html[data-size="large"] .mascot{width:30px; height:30px;}
+html[data-size="large"] .mascot-emoji{font-size:26px;}
+html[data-size="large"] .status b{font-size:13.5px;}
+html[data-size="large"] .status .sub{font-size:11px;}
+html[data-size="large"] .clock{font-size:12px;}
+html[data-size="large"] .body{
+  flex:1; flex-direction:column; align-items:stretch; justify-content:center;
+  gap:0; padding:2px 20px 8px;
+}
+html[data-size="large"] .money-block{align-items:flex-start; gap:0;}
+html[data-size="large"] .amount{font-size:46px;}
+html[data-size="large"] .cap{font-size:12px;}
+html[data-size="large"] .wt{font-size:11px;}
+html[data-size="large"] .monthline{font-size:12px; margin-top:7px; gap:7px;}
+html[data-size="large"] .monthline b{font-size:17px;}
+html[data-size="large"] .monthline .wtm{font-size:11px;}
+html[data-size="large"] .foot{
+  margin-top:26px; flex-direction:column; align-items:center; gap:17px;
+}
+html[data-size="large"] .cds{padding:5px 17px;}
+html[data-size="large"] .cds.multi{gap:16px; padding:4px 17px;}
+html[data-size="large"] .cds.multi .cd + .cd{padding-left:16px;}
+html[data-size="large"] .cd .k{font-size:11.5px;}
+html[data-size="large"] .cd b{font-size:15px;}
+html[data-size="large"] .water{gap:9px; margin-right:0;}
+html[data-size="large"] .wbtn{width:22px; height:22px; border-radius:7px; font-size:14px;}
+html[data-size="large"] .drops{gap:4px;}
+html[data-size="large"] .drops svg{width:11px; height:13px;}
+html[data-size="large"] .water .wmeta{font-size:11.5px;}
+html[data-size="large"] .quip{
+  padding:12px 24px 14px; text-align:center; -webkit-line-clamp:2; font-size:11.5px;
+}
+html[data-size="large"] .tools{right:11px; bottom:11px; gap:6px;}
+html[data-size="large"] .gear, html[data-size="large"] .lock{width:22px; height:22px; border-radius:8px;}
+html[data-size="large"] .gear svg, html[data-size="large"] .lock svg{width:12px; height:12px;}
+
+/* 可读性：卡片背后是活壁纸，纯色文字一定会被"吃掉"一部分。
+   给二级信息一层极淡的同向反色光晕（白天奶白、夜间压黑），
+   只把字形从背景里"托"出来一点点，不加粗底色、不改变玻璃的通透感。 */
+.cap, .wt, .monthline, .quip, .cd .k, .water .wmeta,
+.status b, .status .sub, .clock{
+  text-shadow:0 1px 1.6px var(--txt-halo);
+}
+html[data-glass="thin"] .amount,
+html[data-glass="thin"] .cap,
+html[data-glass="thin"] .wt,
+html[data-glass="thin"] .monthline,
+html[data-glass="thin"] .cd .k,
+html[data-glass="thin"] .water .wmeta,
+html[data-glass="thin"] .status b,
+html[data-glass="thin"] .status .sub,
+html[data-glass="thin"] .clock{
+  text-shadow:0 1px 2.4px var(--txt-halo), 0 0 1px var(--txt-halo);
+}
+
+/* 状态：只调语气，不动品牌色 */
+.card[data-state="before"] .amount,
+.card[data-state="off"] .amount{color:var(--ink-2);}
+
+.card.poke{animation:poke var(--dur-base) var(--ease-spring);}
+@keyframes poke{
+  0%{transform:scale(1);} 40%{transform:scale(.982);} 100%{transform:scale(1);}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms !important; transition-duration:.01ms !important;}
+  .eyes{animation:none;}
+}
+</style>
+</head>
+<body>
+<div class="card" id="card" data-state="working">
+  <div class="rim"></div>
+  <div class="dots"></div>
+
+  <header class="topbar">
+    <div class="mascot" aria-hidden="true">
+      <svg viewBox="0 0 48 48">
+        <circle class="face-bg" cx="24" cy="24" r="21"/>
+        <ellipse class="blush" cx="12.5" cy="27" rx="3.4" ry="2.1"/>
+        <ellipse class="blush" cx="35.5" cy="27" rx="3.4" ry="2.1"/>
+        <g class="eyes">
+          <g class="eye-open">
+            <circle class="eye" cx="17" cy="21.5" r="2.7"/>
+            <circle class="eye" cx="31" cy="21.5" r="2.7"/>
+          </g>
+          <g class="eye-happy">
+            <path class="mouth" d="M13.6 22.6 Q17 18.4 20.4 22.6"/>
+            <path class="mouth" d="M27.6 22.6 Q31 18.4 34.4 22.6"/>
+          </g>
+          <g class="eye-star">
+            <path class="eye" d="M17 17.4l1.5 3.2 3.4.5-2.5 2.4.6 3.4-3-1.6-3 1.6.6-3.4-2.5-2.4 3.4-.5z"/>
+            <path class="eye" d="M31 17.4l1.5 3.2 3.4.5-2.5 2.4.6 3.4-3-1.6-3 1.6.6-3.4-2.5-2.4 3.4-.5z"/>
+          </g>
+          <g class="eye-half">
+            <path class="mouth" d="M14.4 22h5.2"/>
+            <path class="mouth" d="M28.4 22h5.2"/>
+          </g>
+        </g>
+        <path class="mouth" id="mouth" d="M20 30.5 Q24 34 28 30.5"/>
+      </svg>
+      <!-- 控制台里填了自己表情时，上面这张手绘脸整体让位给这个字符 -->
+      <span class="mascot-emoji" id="mascotEmoji"></span>
+    </div>
+    <div class="status">
+      <b id="statusText">打工中</b>
+      <span class="sub" id="statusSub">钱在悄悄长</span>
+    </div>
+    <span class="clock" id="clock">--:--</span>
+  </header>
+
+  <div class="body">
+    <div class="money-block">
+      <div class="capline">
+        <span class="cap" id="cap">今天已入账</span>
+        <span class="wt" id="worktime">工时 0m</span>
+      </div>
+      <div class="amount" id="amount">
+        <span class="cur">$</span><span id="amtInt">0</span><span class="dec" id="amtDec">.00</span>
+      </div>
+
+      <div class="monthline">
+        <span class="k">本月</span><b id="monthVal">$0</b>
+        <span class="wtm" id="monthWt">工时 0h</span>
+      </div>
+    </div>
+
+    <div class="foot">
+      <div class="cds" id="cds" data-variant="work"></div>
+
+      <div class="water" id="water">
+        <button class="wbtn" id="wMinus" type="button" aria-label="撤回一杯" title="撤回一杯">−</button>
+        <span class="drops" id="drops"></span>
+        <span class="wmeta" id="wmeta"><b>0</b>/4 杯</span>
+        <button class="wbtn" id="wPlus" type="button" aria-label="记一杯水" title="记一杯水">＋</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="shield" id="shield" aria-hidden="true"></div>
+  <div class="tools">
+  <button class="lock" id="lockBtn" type="button" aria-label="固定位置" title="固定位置（防止误触拖动）" aria-pressed="false">
+    <!-- 开：锁梁抬起；关：锁梁落下。两颗都画在同一处，靠 class 切换 -->
+    <svg class="ico-off" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M4.6 7.2V5.1a3.4 3.4 0 0 1 6.4-1.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+      <rect x="3" y="7.2" width="10" height="6.4" rx="1.8" fill="currentColor"/>
+    </svg>
+    <svg class="ico-on" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M4.6 7.2V5.1a3.4 3.4 0 0 1 6.8 0v2.1" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+      <rect x="3" y="7.2" width="10" height="6.4" rx="1.8" fill="currentColor"/>
+    </svg>
+  </button>
+  <button class="gear" id="gear" type="button" aria-label="打开控制台" title="打开控制台">
+    <!-- 13px 下描边齿轮会糊成一团"太阳"，实心剪影才读得出是齿轮 -->
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+      <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
+    </svg>
+  </button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   状态
+   ============================================================ */
+const DEFAULTS = {
+  /* 唯一的计价基准就是时薪：日薪、月累计都由它推出来，不再有第二个口径。
+     payUnit/payInput 只是控制台输入框的备忘（用户填的是时/日/月薪哪一个），
+     小组件这边只负责原样存取，不参与计算 */
+  hourly: 80,
+  payUnit: "hour",
+  payInput: 80,
+  start: "09:00",
+  end: "18:00",
+  lunchEnabled: true,
+  lunchStart: "13:00",
+  lunchEnd: "14:00",
+  payday: 15,
+  /* 每周不上班的日子：0=周日 … 6=周六。默认周四 + 周末 */
+  offDays: [0, 4, 6],
+  theme: "light",
+  hue: 255,
+  currency: "$",
+  milkTea: 18,
+  rewardName: "奶茶",
+  rewardUnit: "杯",
+  glass: "standard",
+  /* 小表情：空 = 用手绘的牛马脸（会随状态换眼睛）；填了就换成这个字符 */
+  face: "",
+  /* 喝水：每天按日期归零，杯子数跟着 state 一起存 */
+  waterGoal: 4,
+  cupMl: 500,
+  water: { date: "", cups: 0 },
+  /* 每日喝水日志 { "2026-11-4": 3 }：跨天不清空，控制台用它画近 14 天记录条 */
+  waterLog: {},
+  /* 文案：控制台可改，空则回落到 KIND / QUIPS */
+  texts: {},
+  quips: {},
+  onboarded: false,
+  ui: {}
+};
+
+const native = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.niuma);
+const post = (type, payload) => {
+  if (native) window.webkit.messageHandlers.niuma.postMessage(Object.assign({type}, payload || {}));
+};
+
+function loadState(){
+  let raw = window.__NIUMA_STATE__;
+  if (!raw) {
+    try { raw = JSON.parse(localStorage.getItem("niuma.state") || "null"); } catch(e){ raw = null; }
+  }
+  const s = Object.assign({}, DEFAULTS, (raw && typeof raw === "object") ? raw : {});
+  /* 旧版本存的是"月薪 + 每月工作日"，那套字段已经废弃：清掉，
+     免得两套口径同时留在 state 里，下次读回来又算一遍 */
+  delete s.salary;
+  delete s.workDays;
+  if (!(Number(s.hourly) > 0)) s.hourly = DEFAULTS.hourly;
+  s.ui = Object.assign({}, (raw && raw.ui) || {});
+  s.water = Object.assign({ date:"", cups:0 }, (raw && raw.water) || {});
+  s.waterLog = Object.assign({}, (raw && raw.waterLog) || {});
+  /* 老版本只存了"今天几杯"：读进来补一条今天的，历史从今天开始攒 */
+  if (s.water.date === dayKey() && Number(s.water.cups) > 0) {
+    s.waterLog[dayKey()] = Math.min(99, Math.round(Number(s.water.cups)));
+  }
+  s.texts = Object.assign({}, (raw && raw.texts) || {});
+  s.quips = Object.assign({}, (raw && raw.quips) || {});
+  return s;
+}
+function saveState(){
+  if (native) return;
+  try { localStorage.setItem("niuma.state", JSON.stringify(state)); } catch(e){}
+}
+let state = loadState();
+
+/* 控制台预览：URL 参数覆盖配置 */
+(function applyQuery(){
+  const q = new URLSearchParams(location.search);
+  ["hourly","payday","milkTea"].forEach(k => {
+    if (q.has(k) && q.get(k) !== "" && !isNaN(+q.get(k))) state[k] = +q.get(k);
+  });
+  ["start","end","lunchStart","lunchEnd"].forEach(k => {
+    if (q.has(k) && q.get(k)) state[k] = q.get(k);
+  });
+  if (q.has("hue") && !isNaN(+q.get("hue"))) state.hue = +q.get("hue");
+  if (["thin","standard","thick"].includes(q.get("glass"))) state.glass = q.get("glass");
+  /* 预览用：?face=🐮 看自定义表情长什么样，?face= 传空串则回手绘脸 */
+  if (q.has("face")) state.face = q.get("face");
+  ["rewardName","rewardUnit"].forEach(k => { if (q.has(k)) state[k] = q.get(k); });
+  if (q.has("lunch")) state.lunchEnabled = q.get("lunch") === "1";
+  if (q.has("offDays")) {
+    try {
+      const days = JSON.parse(q.get("offDays"));
+      if (Array.isArray(days)) state.offDays = days;
+    } catch(e){}
+  }
+  /* 控制台预览：喝水与文案也要能看到效果 */
+  if (q.has("water") && !isNaN(+q.get("water"))) state.water = { date: dayKey(), cups: +q.get("water") };
+  if (q.has("goal") && !isNaN(+q.get("goal"))) state.waterGoal = +q.get("goal");
+  if (q.has("cup")  && !isNaN(+q.get("cup")))  state.cupMl = +q.get("cup");
+  if (q.get("txt")) { try { state.texts = JSON.parse(q.get("txt")); } catch(e){} }
+  if (q.has("quips")) {
+    try {
+      const quips = JSON.parse(q.get("quips"));
+      if (quips && typeof quips === "object" && !Array.isArray(quips)) state.quips = quips;
+    } catch(e){}
+  }
+  if (q.get("quip")) state.quips = Object.assign({}, state.quips, { working: q.get("quip") });
+  if (q.get("pv") === "1") document.documentElement.dataset.pv = "1";
+  /* 预览专用：看"已固定"长什么样，不影响真实 state */
+  if (q.get("locked") === "1") state.ui.locked = true;
+})();
+
+/* ============================================================
+   计算
+   ============================================================ */
+const toMin = hhmm => { const [h,m] = hhmm.split(":").map(Number); return h*60 + m; };
+
+function schedule(){
+  const s = toMin(state.start), e = toMin(state.end);
+  const lunchS = toMin(state.lunchStart), lunchE = toMin(state.lunchEnd);
+  const hasLunch = state.lunchEnabled && lunchE > lunchS && lunchS >= s && lunchE <= e;
+  return { s, e, lunchS, lunchE, hasLunch, total:(e - s) - (hasLunch ? (lunchE - lunchS) : 0) };
+}
+/* 休息日：默认含周末，控制台可以把任意一天加进来（比如周四） */
+const offDays = () => Array.isArray(state.offDays) ? state.offDays.map(Number) : [];
+const isOff = d => offDays().includes(d.getDay());
+
+function workedMinutes(now){
+  const sc = schedule();
+  const cur = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60;
+  if (cur <= sc.s) return 0;
+  let worked = Math.min(cur, sc.e) - sc.s;
+  if (sc.hasLunch && cur > sc.lunchS) worked -= Math.min(cur, sc.lunchE) - sc.lunchS;
+  return Math.max(0, Math.min(worked, sc.total));
+}
+
+/* 时薪是唯一输入：每分钟拿多少、上满一天拿多少，都是它乘出来的 */
+const hourlyRate = () => Math.max(0, Number(state.hourly) || 0);
+function pay(){
+  const sc = schedule();
+  const perMin = hourlyRate() / 60;
+  return { sc, perMin, perHour: hourlyRate(), daily: perMin * sc.total };
+}
+
+function money(){
+  const p = pay();
+  const sc = p.sc, daily = p.daily, perMin = p.perMin;
+  const now = new Date();
+  const done = isOff(now) ? 0 : workedMinutes(now);
+  const base = { daily, perMin, perSec:perMin/60, perHour:perMin*60, sc, doneMin:done };
+
+  if (window.__FORCE_STATE__){
+    const pr = {working:.62, lunch:.43, done:1, before:0, off:0}[window.__FORCE_STATE__] ?? 0;
+    return Object.assign(base, {
+      today: daily * pr,
+      progress: pr,
+      month: daily * (window.__FORCE_STATE__ === "done" ? 17 : 11),
+      left: {working:"4h 12m", lunch:"5h 40m", done:"已收工", before:"9h 6m", off:"明天"}[window.__FORCE_STATE__]
+    });
+  }
+
+  // 注意：这里不能调用 monthEarned()，否则与 monthEarned→money 形成无限递归
+  return Object.assign(base, {
+    today: done * perMin,
+    progress: sc.total > 0 ? done / sc.total : 0,
+    left: leftText()
+  });
+}
+
+function monthEarned(now){
+  const daily = pay().daily;
+  let total = 0;
+  for (let d = 1; d <= now.getDate(); d++){
+    const dt = new Date(now.getFullYear(), now.getMonth(), d);
+    if (isOff(dt)) continue;
+    total += (d === now.getDate()) ? money().today : daily;
+  }
+  return total;
+}
+/* 本月累积工时：整月已过的工作日按整天算，今天按实际已干算 */
+function monthMinutes(now){
+  const sc = schedule();
+  const today = isOff(now) ? 0 : workedMinutes(now);
+  let t = 0;
+  for (let d = 1; d <= now.getDate(); d++){
+    const dt = new Date(now.getFullYear(), now.getMonth(), d);
+    if (isOff(dt)) continue;
+    t += (d === now.getDate()) ? today : sc.total;
+  }
+  return t;
+}
+function daysToPayday(now){
+  const p = Math.max(1, Math.min(28, state.payday));
+  let target = new Date(now.getFullYear(), now.getMonth(), p);
+  if (now.getDate() > p) target = new Date(now.getFullYear(), now.getMonth()+1, p);
+  const a = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.max(0, Math.round((target - a) / 86400000));
+}
+function stateKind(now){
+  const sc = schedule();
+  const cur = now.getHours()*60 + now.getMinutes();
+  if (isOff(now)) return "off";
+  if (cur < sc.s) return "before";
+  if (cur >= sc.e) return "done";
+  if (sc.hasLunch && cur >= sc.lunchS && cur < sc.lunchE) return "lunch";
+  return "working";
+}
+/* 两个不同的开关，别混用：
+   ?state=working|lunch|done|before|off  只强制"状态"这一档（控制台预览用，数字照常是真帐）
+   ?demo=working|lunch|...               连金额一起造数（设计稿截图用，不进控制台预览）
+   之前两者共用一个 state 参数，结果控制台预览里的钱一直是假数（$396.80 / 本月 $7,040）。 */
+const KINDS = ["working","lunch","done","before","off"];
+const _q = new URLSearchParams(location.search);
+const FORCE_KIND = _q.get("state");
+const FORCE_STATE = _q.get("demo");
+window.__FORCE_KIND__ = KINDS.includes(FORCE_KIND) ? FORCE_KIND : null;
+window.__FORCE_STATE__ = KINDS.includes(FORCE_STATE) ? FORCE_STATE : null;
+const realKind = stateKind;
+stateKind = function(now){ return window.__FORCE_KIND__ || window.__FORCE_STATE__ || realKind(now); };
+
+/* ============================================================
+   文案
+   ============================================================ */
+const fmt = n => n.toLocaleString("zh-CN", {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmt0 = n => Math.round(n).toLocaleString("zh-CN");
+const fmtW = n => n >= 10000 ? (n/10000).toFixed(n >= 100000 ? 0 : 1) + "万" : fmt0(n);
+
+const KIND = {
+  working:{text:"打工中", sub:"钱在悄悄长", mouth:"M20 30.5 Q24 34 28 30.5"},
+  lunch:  {text:"摸鱼中", sub:"饭要认真吃",  mouth:"M19.5 31 Q22 29 24 31 Q26 33 28.5 31"},
+  done:   {text:"下班啦", sub:"今天到此为止", mouth:"M19 29.5 Q24 35.5 29 29.5"},
+  before: {text:"还没开工", sub:"先喝口水",   mouth:"M22.6 30.2 a1.6 1.6 0 1 0 3.2 0 a1.6 1.6 0 1 0 -3.2 0"},
+  off:    {text:"今天休息", sub:"电脑合上",   mouth:"M19 29.5 Q24 35.5 29 29.5"}
+};
+/* 控制台改过的文案优先，没改就用默认 */
+function kindText(kind){
+  const base = KIND[kind] || KIND.working;
+  const t = (state.texts && state.texts[kind]) || {};
+  const pick = (v, d) => (typeof v === "string" && v.trim()) ? v : d;
+  return { text: pick(t.text, base.text), sub: pick(t.sub, base.sub) };
+}
+
+function leftText(){
+  const sc = schedule();
+  const now = new Date();
+  const cur = now.getHours()*60 + now.getMinutes();
+  /* "距下班"按还要干多久算：午休不计入。
+     于是 12:59 显示 4h 01m，整个午休都停在 4h，吃完饭才继续走。 */
+  let mins = sc.e - cur;
+  if (sc.hasLunch){
+    if (cur < sc.lunchS) mins -= (sc.lunchE - sc.lunchS);
+    else if (cur < sc.lunchE) mins = sc.e - sc.lunchE;
+  }
+  if (mins <= 0) return "0m";
+  const h = Math.floor(mins/60), m = mins%60;
+  return (h > 0 ? h+"h " : "") + m + "m";
+}
+
+/* 长期累计用小时表示：170.5h 比 170h 30m 短，月底不会把本月那行顶爆 */
+function fmtHours(mins){
+  const h = Math.max(0, mins) / 60;
+  return (Math.round(h * 10) / 10).toFixed(1).replace(/\.0$/, "") + "h";
+}
+function minText(mins){
+  mins = Math.max(0, Math.round(mins));
+  if (!mins) return "0m";
+  const h = Math.floor(mins/60), m = mins%60;
+  return (h > 0 ? h+"h " : "") + m + "m";
+}
+
+/* 休息日要显示"离下次上班还有多久"，先算出下一个开工时刻 */
+function nextWorkStart(now){
+  const sc = schedule();
+  for (let i = 0; i < 8; i++){
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+    if (isOff(d)) continue;
+    const t = new Date(d.getTime());
+    t.setHours(Math.floor(sc.s/60), sc.s%60, 0, 0);
+    if (t > now) return t;
+  }
+  return null;
+}
+
+/* 一天里"还剩多久"其实是三件不同的事：离午休、离下班、离发薪。
+   上午两个都值得看（午休是一次真的休息），午休中要看"还能歇多久"，
+   收工后只剩发薪 —— 所以这里返回 1~2 栏 + 一个形态，交给 paintCds 画。 */
+function cdModel(kind, now){
+  const sc = schedule();
+  const cur = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60;
+
+  if (window.__FORCE_STATE__){
+    const demo = {
+      working:[{k:"距午休", v:"2h 10m"}, {k:"距下班", v:"6h 10m"}],
+      lunch:  [{k:"午休剩", v:"42m"},    {k:"下午还有", v:"4h 0m"}],
+      done:   [{k:"距发薪", v:"11 天"}],
+      before: [{k:"距开工", v:"1h 30m"}],
+      off:    [{k:"距上班", v:"明天 09:00"}]
+    };
+    return { variant: kind === "lunch" ? "break" : kind, items: demo[kind] || demo.working };
+  }
+
+  if (kind === "off"){
+    const next = nextWorkStart(now);
+    const mins = next ? (next - now) / 60000 : 0;
+    // 一天以内报时分；跨天就报"周五 09:00"，比"2 天"更好对表
+    const v = (mins > 24*60 && next)
+      ? "周" + "日一二三四五六"[next.getDay()] + " " + state.start
+      : minText(mins);
+    return { variant:"off", items:[{k:"距上班", v}]};
+  }
+  if (kind === "lunch"){
+    return { variant:"break", items:[
+      {k:"午休剩",   v:minText(sc.lunchE - cur)},
+      {k:"下午还有", v:minText(sc.e - sc.lunchE)}
+    ]};
+  }
+  if (kind === "working" && sc.hasLunch && cur < sc.lunchS){
+    return { variant:"work", items:[
+      {k:"距午休", v:minText(sc.lunchS - cur)},
+      {k:"距下班", v:minText(sc.e - cur - (sc.lunchE - sc.lunchS))}
+    ]};
+  }
+  if (kind === "working") return { variant:"work",   items:[{k:"距下班", v:minText(sc.e - cur)}]};
+  if (kind === "done")    return { variant:"done",   items:[{k:"距发薪", v:daysToPayday(now) + " 天"}]};
+  return                         { variant:"before", items:[{k:"距开工", v:minText(sc.s - cur)}]};
+}
+
+function paintCds(kind, now){
+  const box = $("cds");
+  if (!box) return;
+  const { variant, items } = cdModel(kind, now);
+  // 每秒都会进来，值不变就别重建 DOM，否则光标/动画会一直被打断
+  const sig = variant + "|" + items.map(i => i.k + ":" + i.v).join("|");
+  if (box.dataset.sig === sig) return;
+  box.dataset.sig = sig;
+  box.dataset.variant = variant;
+  box.classList.toggle("multi", items.length > 1);
+  box.innerHTML = items.map(i =>
+    `<span class="cd"><span class="k">${i.k}</span><b>${i.v}</b></span>`
+  ).join("");
+}
+
+const QUIPS = {
+  working: [
+    m => `每分钟悄悄多 <em>${state.currency}${m.perMin.toFixed(2)}</em>，你也是。`,
+    m => `今天已经赚到 <em>${(m.today / state.milkTea).toFixed(1)}</em> ${escapeText(state.rewardUnit)}${escapeText(state.rewardName)}了。`,
+    m => `别急，钱会有的。头发不一定。`,
+    m => `今天第 <em>${cups()}</em> 杯水，喝了才算活着。`,
+    m => `时薪 <em>${state.currency}${m.perHour.toFixed(1)}</em>，够买半杯水了。`,
+    m => `再撑 <em>${m.left}</em>，就自由了。`
+  ],
+  lunch: [
+    m => `午休不计薪，但饭要认真吃。`,
+    m => `上午赚了 <em>${state.currency}${fmt(m.today)}</em>，先歇会儿。`,
+    m => `吃饱了下午才有力气继续。`,
+    m => `这会儿不算钱，算活着。`
+  ],
+  done: [
+    m => `今天的份赚完了，剩下时间归你。`,
+    m => `今日入账 <em>${state.currency}${fmt(m.today)}</em>，去玩吧。`,
+    m => `下班的人最富有。`,
+    m => `明天同一时间，再来一次。`
+  ],
+  before: [
+    m => `还没开工，先喝口水。`,
+    m => `今日待入账 <em>${state.currency}${fmt(m.daily)}</em>，慢慢来。`,
+    m => `开工前的时间，不用卖。`
+  ],
+  off: [
+    m => `今天不上班，钱不涨也没关系。`,
+    m => `周四就该这样。`,
+    m => `不赚钱的这一天，才是自己的。`,
+    m => `水还是要喝，杯子照记。`
+  ]
+};
+// 自定义奖励文字作为文本转义，避免进入鼓励语的 HTML 标记。
+const escapeText = value => String(value).replace(/[&<>"']/g, ch =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[ch]);
+let quipIdx = -1;
+function pickQuip(kind, m){
+  // money() 为了避开与 monthEarned 的互相递归，不返回 month；这里补齐，
+  // 否则"本月工资已完成 x%" 会算成 NaN。
+  if (m && m.month == null) m.month = monthEarned(new Date());
+  // 控制台写了自定义语录就直接用它（允许 <em> 上色）
+  const custom = state.quips && state.quips[kind];
+  if (typeof custom === "string" && custom.trim()) return custom;
+  const arr = QUIPS[kind] || QUIPS.working;
+  let i = Math.floor(Math.random() * arr.length);
+  if (arr.length > 1 && i === quipIdx) i = (i+1) % arr.length;
+  quipIdx = i;
+  return arr[i](m);
+}
+
+/* ============================================================
+   渲染
+   ============================================================ */
+const $ = id => document.getElementById(id);
+let lastVal = -1, shownKind = null;
+
+function setSize(){
+  const w = document.documentElement.clientWidth;
+  const h = document.documentElement.clientHeight;
+  /* 窗口 = 卡片 + 8.5×2 透明边：小 180×180 / 中 360×180 / 大 360×360（系统小组件同尺寸）。
+     中和大同宽（360），只能靠高度区分，所以先判宽再判高。 */
+  let size = "large";
+  if (w < 300) size = "small";
+  else if (h < 300) size = "medium";
+  if (document.documentElement.dataset.size !== size) document.documentElement.dataset.size = size;
+}
+
+function setAmount(v){
+  const s = fmt(v);
+  const [int, dec] = s.split(".");
+  const el = $("amtInt");
+  if (el.textContent !== int) el.textContent = int;
+  $("amtDec").textContent = "." + dec;
+}
+
+/* 小表情：state.face 为空就用手绘牛马脸（那张脸自己会随状态换眼睛），
+   非空则整体换成这个字符。只换内容，不碰尺寸——尺寸仍由 .mascot 控制。 */
+/* 按"字"截断，别按 UTF-16 码元截——否则多出来的半个代理对会渲染成方块问号 */
+const clampFace = v => Array.from(String(v == null ? "" : v).trim()).slice(0, 4).join("");
+function renderFace(){
+  const box = document.querySelector(".mascot");
+  const slot = $("mascotEmoji");
+  if (!box || !slot) return;
+  const f = clampFace(state.face);
+  box.classList.toggle("is-emoji", f.length > 0);
+  if (slot.textContent !== f) slot.textContent = f;
+}
+
+function ensureQuip(){
+  const body = document.querySelector(".body");
+  if (!body || document.querySelector(".quip")) return;
+  const p = document.createElement("p");
+  p.className = "quip";
+  p.innerHTML = pickQuip(stateKind(new Date()), money());
+  body.appendChild(p);
+}
+
+function render(first){
+  const now = new Date();
+  const m = money();
+  // 本月累计单独算（money 内部不能再调 monthEarned，会递归）
+  if (!window.__FORCE_STATE__) m.month = monthEarned(now);
+  const kind = stateKind(now);
+
+  document.documentElement.dataset.glass = ["thin","standard","thick"].includes(state.glass) ? state.glass : "standard";
+  document.documentElement.style.setProperty("--h", String(state.hue ?? 255));
+  $("card").dataset.state = kind;
+  renderFace();
+
+  if (kind !== shownKind){
+    const T = kindText(kind);
+    $("statusText").textContent = T.text;
+    $("statusSub").textContent = T.sub;
+    $("mouth").setAttribute("d", KIND[kind].mouth);
+    const q = document.querySelector(".quip");
+    if (q) q.innerHTML = pickQuip(kind, m);
+    shownKind = kind;
+  }
+
+  $("clock").textContent =
+    String(now.getHours()).padStart(2,"0") + ":" + String(now.getMinutes()).padStart(2,"0");
+
+  /* 主数字固定"今天已入账"；本月单独一行。不做点击切换，
+     否则两处会同时显示同一个数字，看起来像 bug。 */
+  const mainVal = Math.max(0, m.today);
+  setAmount(first ? 0 : mainVal);
+  if (!first && lastVal >= 0 && mainVal > lastVal + 0.005){
+    const a = $("amount");
+    a.classList.remove("bump"); void a.offsetWidth; a.classList.add("bump");
+  }
+  lastVal = mainVal;
+  $("cap").textContent = (window.__FORCE_STATE__ ? kind : realKind(now)) === "off" ? "今天休息，不入账" : "今天已入账";
+  /* 累积工时：今天已经干了多久，跟着秒表一起走 */
+  const wt = $("worktime");
+  if (wt){
+    if (kind === "off"){
+      wt.style.display = "none";
+    } else {
+      wt.style.display = "";
+      const wm = window.__FORCE_STATE__ ? m.progress * m.sc.total : m.doneMin;
+      wt.textContent = "工时 " + minText(wm);
+    }
+  }
+  const curEl = document.querySelector(".amount .cur");
+  if (curEl) curEl.textContent = state.currency;
+  $("monthVal").textContent = state.currency + fmt0(m.month);
+  /* 今日工时在金额上方，本月工时跟在本月金额后面 */
+  const wtM = $("monthWt");
+  if (wtM){
+    const mm = window.__FORCE_STATE__
+      ? Math.round(m.progress * m.sc.total * 12)
+      : monthMinutes(now);
+    wtM.textContent = "工时 " + fmtHours(mm);
+  }
+
+  /* 倒计时：上午报"距午休 + 距下班"两栏，午休/收工各有自己的形态 */
+  paintCds(kind, now);
+
+  renderWater();
+  paintLock();
+}
+
+/* ============================================================
+   喝水
+   ============================================================ */
+const DROP_PATH = "M6 1.1c2.35 2.75 4.2 4.95 4.2 7.15A4.2 4.2 0 0 1 6 12.5a4.2 4.2 0 0 1-4.2-4.25C1.8 6.05 3.65 3.85 6 1.1z";
+
+function dayKey(d){
+  d = d || new Date();
+  return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+}
+/* 跨天自动归零：只认"今天的杯子数"，昨天的记录留着也不显示 */
+function cups(){
+  const w = state.water || {};
+  if (w.date !== dayKey()) return 0;
+  const n = Math.round(Number(w.cups));
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+/* 每天一杯都要留档：日志是 { "2026-11-4": 3 }，只保留最近 180 天。
+   控制台靠它画近 14 天的记录条，所以每次改杯数都要顺手写一笔。 */
+const LOG_KEEP = 180;
+function keyTime(k){
+  const [y, m, d] = String(k).split("-").map(Number);
+  return new Date(y || 1970, (m || 1) - 1, d || 1).getTime();
+}
+function recordWater(n){
+  const log = Object.assign({}, state.waterLog || {});
+  log[dayKey()] = Math.max(0, Math.min(99, Math.round(n)));
+  const keys = Object.keys(log).sort((a, b) => keyTime(a) - keyTime(b));
+  for (let i = 0; i < keys.length - LOG_KEEP; i++) delete log[keys[i]];
+  state.waterLog = log;
+}
+function adjustWater(delta){
+  if (native) { post("adjustWater", {delta}); return; }
+  const n = cups() + delta;
+  state.water = { date: dayKey(), cups: Math.max(0, Math.min(99, Math.round(n))) };
+  recordWater(state.water.cups);
+  saveState();
+  renderWater(true);
+}
+function renderWater(pop){
+  const goal = Math.max(1, Math.min(12, Math.round(Number(state.waterGoal)) || 4));
+  const n = cups();
+  const box = $("drops");
+  const sig = goal + ":" + n;
+  if (box.dataset.sig !== sig){
+    box.innerHTML = Array.from({length: goal}, (_, i) =>
+      `<svg viewBox="0 0 12 14"${i < n ? ' class="on"' : ""}><path d="${DROP_PATH}"/></svg>`
+    ).join("");
+    box.dataset.sig = sig;
+    if (pop && n > 0){
+      const el = box.children[Math.min(n, goal) - 1];
+      if (el) el.classList.add("pop");
+    }
+  }
+  const ml = n * (Number(state.cupMl) > 0 ? Number(state.cupMl) : 500);
+  $("wmeta").innerHTML =
+    `<b>${n}</b><span class="of">/</span>${goal} 杯<span class="liter"> · ${(ml / 1000).toFixed(1)}L</span>`;
+  /* 达标就把数字染成主色 —— 这是唯一允许"庆祝"的地方 */
+  $("water").classList.toggle("done", n >= goal);
+  const minus = $("wMinus");
+  if (minus) minus.disabled = n <= 0;
+}
+
+/* ============================================================
+   交互
+   ============================================================ */
+const card = $("card");
+let dragging = false;
+
+card.addEventListener("pointerdown", e => {
+  if (e.button !== 0) return;
+  /* 固定之后就完全不发 dragBegin：原生那边收不到指令，窗口一动不动。
+     这是"防误触"的唯一闸门，双击开控制台、点喝水按钮都不受影响。 */
+  if (state.ui.locked) return;
+  dragging = true;
+  post("dragBegin");
+  try { card.setPointerCapture(e.pointerId); } catch(err){}
+});
+card.addEventListener("pointerup", () => { if (dragging){ dragging = false; post("dragEnd"); } });
+card.addEventListener("pointercancel", () => { if (dragging){ dragging = false; post("dragEnd"); } });
+
+card.addEventListener("dblclick", () => post("openDashboard"));
+card.addEventListener("contextmenu", e => { e.preventDefault(); post("openDashboard"); });
+
+/* 遮罩只在锁定态显示；显示时把卡片上的一切交互拦在门外。
+   preventDefault 也一起做，免得双击选中文字、右键弹系统菜单。 */
+const shield = $("shield");
+if (shield){
+  ["pointerdown","pointerup","click","dblclick","contextmenu"].forEach(t => {
+    shield.addEventListener(t, e => { e.stopPropagation(); e.preventDefault(); }, true);
+  });
+}
+
+/* 固定开关：锁住之后整张卡拖不动，只有这里能解 */
+function paintLock(){
+  const on = !!state.ui.locked;
+  card.dataset.locked = on ? "1" : "0";
+  const b = $("lockBtn");
+  if (!b) return;
+  b.setAttribute("aria-pressed", on ? "true" : "false");
+  b.title = on ? "已固定位置 · 点一下可拖动" : "固定位置（防止误触拖动）";
+}
+const lockBtn = $("lockBtn");
+if (lockBtn){
+  lockBtn.addEventListener("pointerdown", e => { e.stopPropagation(); });
+  lockBtn.addEventListener("dblclick", e => e.stopPropagation());
+  lockBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    state.ui.locked = !state.ui.locked;
+    paintLock();
+    if (native) post("setLocked", {locked: state.ui.locked});
+    else saveState();
+  });
+}
+paintLock();
+
+/* 齿轮：必须拦住 pointerdown，否则会先触发卡片的拖动，松手时窗口被挪走 */
+const gear = $("gear");
+gear.addEventListener("pointerdown", e => { e.stopPropagation(); });
+gear.addEventListener("click", e => { e.stopPropagation(); post("openDashboard"); });
+gear.addEventListener("dblclick", e => e.stopPropagation());
+
+/* 喝水：两颗实体按键，− 撤回、＋ 记一杯。
+   pointerdown 必须拦下来，否则按一下会先变成拖窗口。 */
+["wPlus","wMinus"].forEach(id => {
+  const b = $(id);
+  b.addEventListener("pointerdown", e => e.stopPropagation());
+  b.addEventListener("click", e => {
+    e.stopPropagation();
+    adjustWater(id === "wPlus" ? 1 : -1);
+  });
+  b.addEventListener("dblclick", e => e.stopPropagation());
+});
+
+let rt;
+new ResizeObserver(() => {
+  clearTimeout(rt);
+  rt = setTimeout(() => { setSize(); ensureQuip(); render(false); }, 60);
+}).observe(document.documentElement);
+
+window.NMW = {
+  reloadFromStore(){ state = loadState(); lastVal = -1; shownKind = null; render(false); },
+  // 控制台改完立即生效：直接吃它推过来的配置，不回写，避免消息回声
+  applyExternal(patch){ Object.assign(state, patch || {}); lastVal = -1; shownKind = null; render(false); },
+  // 纯重绘：不碰 state，避免把旧快照读回来覆盖刚改好的配置
+  repaint(){ lastVal = -1; shownKind = null; render(false); },
+  apply(patch){ Object.assign(state, patch); saveState(); lastVal = -1; shownKind = null; render(false); }
+};
+
+function yearEarned(now){
+  const daily = pay().daily;
+  let t = 0;
+  for (let mo = 0; mo <= now.getMonth(); mo++){
+    const last = (mo === now.getMonth()) ? now.getDate() : new Date(now.getFullYear(), mo+1, 0).getDate();
+    for (let d = 1; d <= last; d++){
+      const dt = new Date(now.getFullYear(), mo, d);
+      if (isOff(dt)) continue;
+      t += (mo === now.getMonth() && d === now.getDate()) ? money().today : daily;
+    }
+  }
+  return t;
+}
+
+/* ============================================================
+   启动
+   ============================================================ */
+setSize();
+render(true);
+ensureQuip();
+setInterval(() => render(false), 1000);
+setInterval(setSize, 4000);
+</script>
+</body>
+</html>

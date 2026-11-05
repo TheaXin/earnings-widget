@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>牛马鼓励器 · 控制台</title>
+<style>
+/* ============================================================
+   控制台 · 与小组件共用同一套单色令牌
+   ============================================================ */
+:root{
+  --font-round: ui-rounded, "SF Pro Rounded", "Yuanti SC", "PingFang SC", -apple-system, sans-serif;
+  --font-sans:  "Yuanti SC", "PingFang SC", -apple-system, sans-serif;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px;
+  --ease-spring: cubic-bezier(.34,1.56,.64,1);
+  --ease-out-quart: cubic-bezier(.25,1,.5,1);
+  --dur-fast:160ms; --dur-base:320ms;
+  --h: 255;
+}
+html[data-theme="light"]{
+  --bg: #f7f7f9;
+  --bg-2: #f1f1f4;
+  --card:    oklch(100% 0 var(--h));
+  --edge: #e5e5eb;
+  --line: #e8e8ee;
+  --ink: #30303a;
+  --ink-2: #666674;
+  --ink-3: #858592;
+  --accent: oklch(61% .105 var(--h));
+  --accent-2: oklch(76% .075 var(--h));
+  --accent-soft: oklch(96% .014 var(--h));
+  /* 记录条里"未达标"的柱：同一色相但压暗一档，必须比达标的实心柱弱，
+     浅色柱降低饱和度，避免抢过达标柱 */
+  --accent-dim: oklch(86% .040 var(--h));
+  --accent-ink: oklch(45% .090 var(--h));
+  --shadow: 0 10px 24px -14px oklch(33% .03 var(--h) / .30), 0 1px 2px oklch(33% .02 var(--h) / .04);
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%;}
+body{
+  background:var(--bg);
+  color:var(--ink); font-family:var(--font-sans);
+  -webkit-font-smoothing:antialiased;
+  overflow-y:auto;
+  transition:background var(--dur-base) var(--ease-out-quart);
+}
+::-webkit-scrollbar{width:10px;}
+::-webkit-scrollbar-thumb{background:var(--line); border-radius:99px; border:3px solid transparent; background-clip:content-box;}
+
+.wrap{max-width:1060px; margin:0 auto; padding:34px 36px 60px;}
+
+/* ---------- 头部 ---------- */
+.head{display:flex; align-items:center; gap:14px; margin-bottom:26px;}
+.badge{
+  width:46px; height:46px; border-radius:16px; flex:0 0 auto;
+  background:var(--card); border:1.5px solid var(--edge);
+  display:grid; place-items:center; box-shadow:var(--shadow);
+  transition:background var(--dur-base) var(--ease-out-quart);
+}
+.badge svg{width:30px; height:30px;}
+.h-title{font-size:19px; font-weight:600; letter-spacing:.01em;}
+.h-sub{font-size:12px; color:var(--ink-2); margin-top:3px;}
+.head .grow{flex:1;}
+.seg{display:inline-flex; background:var(--bg-2); border-radius:99px; padding:3px; border:1px solid var(--edge); gap:2px;}
+.seg button{
+  border:0; background:transparent; color:var(--ink-2); cursor:pointer;
+  font-family:var(--font-sans); font-size:12px; font-weight:500;
+  padding:6px 14px; border-radius:99px; transition:all var(--dur-fast);
+}
+.seg button[aria-pressed="true"]{background:var(--card); color:var(--ink); box-shadow:0 1px 3px oklch(33% .02 var(--h) / .14);}
+.seg.compact{padding:2px; background:var(--bg-2);}
+.seg.compact button{padding:4px 13px; font-size:11.5px; font-weight:600; min-width:44px;}
+
+/* ---------- 面板标题行 ---------- */
+.p-head{display:flex; align-items:center; gap:14px;}
+.p-head .p-title{flex:1; margin-bottom:0;}
+.p-sub{
+  font-size:11px; font-weight:600; color:var(--ink-2);
+  letter-spacing:.1em; text-transform:uppercase;
+  margin:18px 0 10px; display:flex; align-items:center; gap:8px;
+}
+.p-sub::after{content:""; flex:1; height:1px; background:var(--line);}
+.size-hint{
+  font-size:11.5px; color:var(--ink-2); letter-spacing:.01em;
+  margin:10px 0 16px;
+}
+
+/* ---------- 面板 ---------- */
+.panel{
+  background:var(--card); border:1.5px solid var(--edge);
+  border-radius:22px; box-shadow:var(--shadow); padding:20px 22px;
+  transition:background var(--dur-base) var(--ease-out-quart);
+}
+.panel + .panel{margin-top:16px;}
+.p-title{
+  font-size:11px; font-weight:600; color:var(--ink-2);
+  letter-spacing:.1em; text-transform:uppercase; margin-bottom:16px;
+  display:flex; align-items:center; gap:8px;
+}
+.p-title::after{content:""; flex:1; height:1px; background:var(--line);}
+
+/* ---------- 预览 ---------- */
+.previews{
+  display:flex; gap:18px 22px; align-items:flex-start; flex-wrap:wrap;
+  padding:20px; margin-bottom:22px; border-radius:18px;
+  background:
+    radial-gradient(ellipse at 96% 0%, #f0c6b7 0%, transparent 58%),
+    radial-gradient(ellipse at 8% 95%, #829ed1 0%, transparent 58%),
+    radial-gradient(ellipse at 44% 18%, #c6b0d5 0%, transparent 62%),
+    linear-gradient(135deg, #8d92c2, #ad92bb 65%, #ceabbf);
+}
+.previews .pv-name{color:var(--ink); background:#ffffff45;}
+.previews .pv:hover .pv-name, .previews .pv.on .pv-name{
+  color:var(--accent-ink); border-color:#ffffffb3; background:#ffffff8c;
+}
+.pv{display:flex; flex-direction:column; gap:9px; align-items:center; cursor:pointer;}
+.pv:focus-visible, #previewState button:focus-visible{
+  outline:2px solid var(--accent); outline-offset:4px; border-radius:8px;
+}
+.pv-stage{position:relative;}
+.pv iframe{border:0; display:block; background:transparent; transform-origin:top left; pointer-events:none;}
+.pv-name{
+  font-size:11px; color:var(--ink-2); font-weight:600;
+  padding:3px 8px; border:1px solid transparent; border-radius:8px;
+}
+.pv:hover .pv-name, .pv.on .pv-name{color:var(--accent-ink); border-color:var(--line);}
+.pv-selected{display:none;}
+.pv.on .pv-selected{display:inline;}
+.preview-controls{display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-bottom:12px;}
+.preview-controls .seg{flex-wrap:wrap;}
+.pay-result{font-size:13px; color:var(--ink-2); font-weight:600; font-variant-numeric:tabular-nums;}
+.pv.tiny .pv-stage{width:139px; height:139px;}
+.pv.tiny iframe{width:180px; height:180px; transform:scale(.772);}
+.pv.mid .pv-stage{width:244px; height:122px;}
+.pv.mid iframe{width:360px; height:180px; transform:scale(.678);}
+.pv.big .pv-stage{width:244px; height:244px;}
+.pv.big iframe{width:360px; height:360px; transform:scale(.678);}
+
+/* ---------- 色板 ---------- */
+.swatches{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+.sw{
+  width:34px; height:34px; border-radius:12px; border:2px solid transparent;
+  background:var(--sw); cursor:pointer; padding:0; position:relative;
+  transition:transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast);
+  box-shadow:0 2px 6px oklch(33% .02 var(--h) / .16) inset, 0 1px 2px oklch(33% .02 var(--h) / .1);
+}
+.sw:hover{transform:translateY(-2px) scale(1.05);}
+.sw[aria-pressed="true"]{border-color:var(--ink); box-shadow:0 0 0 3px var(--card) inset, 0 0 0 5px var(--accent-soft);}
+.sw[aria-pressed="true"]::after{
+  content:"✓"; position:absolute; inset:0; display:grid; place-items:center;
+  color:#fff; font-size:14px; font-weight:700; text-shadow:0 1px 2px rgba(0,0,0,.3);
+}
+.sw.custom{
+  background:conic-gradient(from 210deg, #FF8FA3, #E8A400, #4FCBB0, #5B9DF9, #A78BFA, #FF8FA3);
+  display:grid; place-items:center; overflow:hidden;
+}
+.sw.custom input{opacity:0; width:100%; height:100%; cursor:pointer;}
+.sw.custom span{position:absolute; color:#fff; font-size:15px; font-weight:700; pointer-events:none; text-shadow:0 1px 3px rgba(0,0,0,.35);}
+.sw-note{font-size:10.5px; color:var(--ink-2); margin-top:10px; line-height:1.6;}
+.sw-note b{color:var(--ink-2); font-weight:600;}
+
+/* ---------- 两列 ---------- */
+.cols{display:grid; grid-template-columns:1fr 320px; gap:16px; align-items:start;}
+
+/* ---------- 表单 ---------- */
+.form{display:grid; grid-template-columns:1fr 1fr; gap:13px 15px;}
+.field{display:flex; flex-direction:column; gap:6px; min-width:0;}
+.field label{font-size:11px; color:var(--ink-2); letter-spacing:.04em; padding-left:2px;}
+.field .hint{font-size:10px; color:var(--ink-3); padding-left:2px;}
+/* 薪资参考：标题与单位切换同一行，输入框单独占满一行（折算链路的说明文字较长） */
+.pay-head{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+.pay-head label{padding-left:2px;}
+/* 小表情：一个输入框 + 一排快捷选择；留空回到手绘脸 */
+.face-input{height:34px;}
+.face-input input{font-size:14px; font-weight:600; text-align:center;}
+.face-picks{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
+.face-picks button{
+  width:28px; height:28px; padding:0; border-radius:9px; cursor:pointer;
+  border:1px solid var(--edge); background:var(--bg-2); color:var(--ink-2);
+  font-size:15px; line-height:1; display:grid; place-items:center;
+  transition:all var(--dur-fast);
+}
+.face-picks button.wide{width:auto; padding:0 9px; font-size:11px; font-weight:600; letter-spacing:.02em;}
+.face-picks button:hover{border-color:var(--accent-2);}
+.face-picks button[aria-pressed="true"]{border-color:var(--accent-2); background:var(--card); color:var(--ink);}
+.input{
+  display:flex; align-items:center; gap:6px;
+  background:var(--bg-2); border:1.5px solid var(--line);
+  border-radius:13px; padding:0 12px; height:40px;
+  transition:border-color var(--dur-fast), background var(--dur-fast);
+}
+.input:focus-within{border-color:var(--accent-2); background:var(--card);}
+.input span{font-size:12px; color:var(--ink-3); font-family:var(--font-round); font-weight:600;}
+.input input{
+  border:0; background:transparent; outline:none; flex:1; min-width:0;
+  font-family:var(--font-round); font-size:16px; font-weight:700; color:var(--ink);
+  font-variant-numeric:tabular-nums; letter-spacing:-.01em;
+}
+.input input::-webkit-outer-spin-button,
+.input input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.input input[type="time"]{font-size:14px; font-weight:600;}
+.switch{display:flex; align-items:center; justify-content:space-between; grid-column:1 / -1; padding:2px;}
+.switch .lbl{font-size:12px; color:var(--ink-2);}
+.toggle{
+  width:44px; height:26px; border-radius:99px; border:0; cursor:pointer;
+  background:var(--line); position:relative; transition:background var(--dur-base) var(--ease-out-quart);
+}
+.toggle::after{
+  content:""; position:absolute; top:3px; left:3px; width:20px; height:20px;
+  border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.18);
+  transition:transform var(--dur-base) var(--ease-spring);
+}
+.toggle[aria-checked="true"]{background:var(--accent);}
+.toggle[aria-checked="true"]::after{transform:translateX(18px);}
+
+.days{display:flex; gap:6px;}
+.days button{
+  flex:1; height:38px; border-radius:12px; cursor:pointer;
+  border:1.5px solid var(--line); background:var(--bg-2);
+  color:var(--ink-3); font-family:var(--font-sans); font-size:12.5px; font-weight:600;
+  transition:all var(--dur-fast);
+}
+.days button:hover{border-color:var(--ink-3);}
+.days button[aria-pressed="true"]{
+  background:oklch(94.5% .032 var(--h) / .92);
+  border-color:var(--accent-2); color:var(--accent-ink);
+}
+
+.actions{display:flex; align-items:center; gap:12px; margin-top:18px;}
+.btn{
+  border:0; cursor:pointer; font-family:var(--font-sans); font-weight:600; font-size:13px;
+  padding:11px 22px; border-radius:13px; transition:all var(--dur-fast);
+}
+.btn.primary{background:var(--accent-ink); color:#fff; box-shadow:0 6px 16px -8px oklch(58% .15 var(--h) / .9);}
+.btn.primary:hover{transform:translateY(-1px);}
+.btn.primary:active{transform:translateY(0) scale(.99);}
+.btn.ghost{background:transparent; color:var(--ink-2); border:1.5px solid var(--line);}
+.btn.ghost:hover{color:var(--ink); border-color:var(--ink-3);}
+.saved{font-size:12px; color:var(--accent-ink); font-weight:600; opacity:0; transition:opacity var(--dur-base);}
+.saved.on{opacity:1;}
+
+/* ---------- 数据 ---------- */
+.stats{display:flex; flex-direction:column; gap:10px;}
+.stat{background:var(--bg-2); border-radius:16px; padding:13px 15px; border:1px solid var(--line);}
+.stat .k{font-size:10.5px; color:var(--ink-2); letter-spacing:.08em;}
+.stat .v{
+  font-family:var(--font-round); font-variant-numeric:tabular-nums;
+  font-size:21px; font-weight:800; letter-spacing:-.02em; margin-top:4px;
+  display:flex; align-items:baseline; gap:2px;
+}
+.stat .v small{font-size:.52em; font-weight:700; color:var(--ink-2);}
+.stat.hi .v{color:var(--accent-ink);}
+
+.tipbox{
+  margin-top:12px; padding:12px 14px; border-radius:14px;
+  background:var(--accent-soft); font-size:11px; line-height:1.65; color:var(--ink-2);
+}
+.tipbox b{color:var(--ink); font-weight:600;}
+
+/* ---------- 喝水 ---------- */
+.wcount-row{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+.wbtn{
+  width:40px; height:40px; border-radius:13px; border:1.5px solid var(--line);
+  background:var(--bg-2); color:var(--ink); font-size:18px; font-weight:600;
+  cursor:pointer; line-height:1; transition:all var(--dur-fast);
+}
+.wbtn:hover{border-color:var(--accent-2); background:var(--card); color:var(--accent-ink);}
+.wbtn:active{transform:scale(.96);}
+.wcount{
+  flex:1; display:flex; align-items:baseline; justify-content:center; gap:4px;
+  font-family:var(--font-round); font-variant-numeric:tabular-nums;
+}
+.wcount b{font-size:31px; font-weight:800; letter-spacing:-.02em; color:var(--accent-ink);}
+.wsep{color:var(--ink-3); font-size:16px; font-weight:700;}
+#wGoalTxt{font-size:16px; font-weight:700; color:var(--ink-2);}
+.wunit{font-size:11px; color:var(--ink-2); margin-left:2px;}
+
+/* 近 14 天记录条：柱高 = 杯数 / max(目标, 峰值)。
+   三档用"同一色相、不同浓度"表达：达标 = 实心主色，未达标 = 浅主色，没记录 = 中性底桩。
+   目标线是虚线，柱顶过线才算达标 —— 所以不需要给数字，读图就够。 */
+.wlog{margin-top:15px; padding-top:13px; border-top:1px solid var(--line);}
+.wlog-bars{position:relative; display:flex; align-items:flex-end; gap:4px; height:46px;}
+/* 目标线：位置由 JS 按 goal/peak 算，柱子压线与否一眼可比 */
+.wlog-bars::before{
+  content:""; position:absolute; left:0; right:0; bottom:var(--goal-top, 33%);
+  border-top:1px dashed var(--line); pointer-events:none;
+}
+.wb{
+  position:relative; flex:1 1 0; min-width:0; border-radius:4px 4px 2px 2px;
+  background:var(--accent-dim);
+  transition:height var(--dur-base) var(--ease-out-quart), background var(--dur-fast);
+}
+.wb.hi{background:var(--accent);}
+/* 没记录的日子收窄成一个小墩：整列同宽的 4px 会连成一条横线，读起来像分隔符。
+   注意不能用 margin:0 30% 来收窄 —— flex 里百分比外边距不可收缩，
+   14 根柱子一叠加就是负剩余空间，整排柱子会被压成 0 宽（踩过）。用绝对定位的伪元素画。 */
+.wb.zero{background:transparent;}
+.wb.zero::after{
+  content:""; position:absolute; left:22%; right:22%; bottom:0; height:4px;
+  border-radius:2px; background:var(--line);
+}
+.wlog-days{display:flex; gap:4px; margin-top:6px;}
+.wlog-days span{
+  position:relative; flex:1 1 0; text-align:center; font-size:9px; color:var(--ink-3);
+  font-family:var(--font-round); line-height:1;
+}
+.wlog-days span.today{color:var(--accent-ink); font-weight:700;}
+/* 今天的小圆点绝对定位：不能把「今」这一格的字往下顶，否则整行基线会歪 */
+.wlog-days span.today::before{
+  content:""; position:absolute; left:50%; top:-5px; width:3px; height:3px;
+  margin-left:-1.5px; border-radius:50%; background:var(--accent-ink);
+}
+.wlog-empty{
+  display:none; height:46px; border:1px dashed var(--line); border-radius:11px;
+  align-items:center; justify-content:center; text-align:center;
+  font-size:10.5px; line-height:1.5; color:var(--ink-3);
+}
+.wlog.is-empty .wlog-bars,
+.wlog.is-empty .wlog-days,
+.wlog.is-empty .wlog-foot{display:none;}
+.wlog.is-empty .wlog-empty{display:flex;}
+.wlog-foot{
+  display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+  margin-top:8px; font-size:10.5px; color:var(--ink-3);
+  font-variant-numeric:tabular-nums;
+}
+.wlog-foot b{color:var(--ink-2); font-weight:600;}
+
+/* ---------- 文案 ---------- */
+.texts{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+.tgroup{background:var(--bg-2); border:1px solid var(--line); border-radius:16px; padding:14px 15px;}
+.tk{
+  font-size:12px; font-weight:600; color:var(--ink); margin-bottom:6px;
+  display:flex; align-items:center; gap:7px;
+}
+.tk::before{content:""; width:7px; height:7px; border-radius:50%; background:var(--accent);}
+.trow{display:flex; align-items:center; gap:9px; margin-top:7px;}
+.trow label{font-size:11px; color:var(--ink-3); width:42px; flex:0 0 auto;}
+.ti{
+  flex:1; min-width:0; height:34px; padding:0 11px;
+  border:1.5px solid var(--line); background:var(--card); border-radius:11px;
+  font-family:var(--font-sans); font-size:12.5px; color:var(--ink); outline:none;
+  transition:border-color var(--dur-fast);
+}
+.ti:focus{border-color:var(--accent-2);}
+.ti::placeholder{color:var(--ink-3);}
+.tq{font-size:12px;}
+code{
+  font-family:ui-monospace, SFMono-Regular, monospace; font-size:10.5px;
+  background:var(--bg-2); padding:1px 5px; border-radius:5px; color:var(--ink-2);
+}
+
+@media (max-width:900px){
+  .cols{grid-template-columns:1fr;}
+  .form{grid-template-columns:1fr;}
+  .texts{grid-template-columns:1fr;}
+  .wrap{padding:24px 18px 44px;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <div class="badge">
+      <svg viewBox="0 0 48 48">
+        <circle cx="24" cy="24" r="21" fill="var(--accent-soft)" stroke="var(--accent-2)" stroke-width="1.4"/>
+        <ellipse cx="12.5" cy="27" rx="3.4" ry="2.1" fill="var(--accent-2)" opacity=".55"/>
+        <ellipse cx="35.5" cy="27" rx="3.4" ry="2.1" fill="var(--accent-2)" opacity=".55"/>
+        <circle cx="17" cy="21.5" r="2.7" fill="var(--ink)"/>
+        <circle cx="31" cy="21.5" r="2.7" fill="var(--ink)"/>
+        <path d="M20 30.5 Q24 34 28 30.5" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div>
+      <div class="h-title">牛马鼓励器 · 控制台</div>
+      <div class="h-sub">算清楚你今天赚了多少，再心安理得地摸鱼</div>
+    </div>
+    <div class="grow"></div>
+  </div>
+
+  <div class="panel">
+    <div class="p-head">
+      <div class="p-title">小组件预览</div>
+      <div class="seg compact" id="sizeSeg" role="group" aria-label="小组件尺寸">
+        <button data-size="small"  title="小号 · 卡片 163 × 163（窗口 180 × 180）" aria-pressed="false">小</button>
+        <button data-size="medium" title="中号 · 卡片 343 × 163（窗口 360 × 180）" aria-pressed="true">中</button>
+        <button data-size="large"  title="大号 · 卡片 343 × 343（窗口 360 × 360）" aria-pressed="false">大</button>
+      </div>
+    </div>
+    <div class="size-hint">点下面任意一张预览也能切换尺寸，改完立即生效。</div>
+    <div class="preview-controls">
+      <span class="hint">预览状态</span>
+      <div class="seg compact" id="previewState" role="group" aria-label="预览状态">
+        <button type="button" data-kind="" aria-pressed="true">当前</button>
+        <button type="button" data-kind="before" aria-pressed="false">开工前</button>
+        <button type="button" data-kind="working" aria-pressed="false">上班</button>
+        <button type="button" data-kind="lunch" aria-pressed="false">午休</button>
+        <button type="button" data-kind="done" aria-pressed="false">下班</button>
+        <button type="button" data-kind="off" aria-pressed="false">休息</button>
+      </div>
+      <span class="hint">只切换卡片状态，金额仍按当前时间计算</span>
+    </div>
+    <div class="previews">
+      <div class="pv tiny">
+        <div class="pv-stage"><iframe data-size="small" title="小尺寸预览" tabindex="-1" aria-hidden="true"></iframe></div>
+        <span class="pv-name">小号 163 × 163<span class="pv-selected" aria-hidden="true"> · 已选</span></span>
+      </div>
+      <div class="pv mid">
+        <div class="pv-stage"><iframe data-size="medium" title="中尺寸预览" tabindex="-1" aria-hidden="true"></iframe></div>
+        <span class="pv-name">中号 343 × 163<span class="pv-selected" aria-hidden="true"> · 已选</span></span>
+      </div>
+      <div class="pv big">
+        <div class="pv-stage"><iframe data-size="large" title="大尺寸预览" tabindex="-1" aria-hidden="true"></iframe></div>
+        <span class="pv-name">大号 343 × 343<span class="pv-selected" aria-hidden="true"> · 已选</span></span>
+      </div>
+    </div>
+    <div>
+        <div class="p-title" style="margin-bottom:10px;">主题色</div>
+        <div class="swatches">
+          <button class="sw" data-hue="255" data-hex="#5B9DF9" style="--sw:#5B9DF9" aria-pressed="true" title="雾蓝"></button>
+          <button class="sw" data-hue="8"   data-hex="#FF8FA3" style="--sw:#FF8FA3" aria-pressed="false" title="樱粉"></button>
+          <button class="sw" data-hue="168" data-hex="#4FCBB0" style="--sw:#4FCBB0" aria-pressed="false" title="薄荷"></button>
+          <button class="sw" data-hue="75"  data-hex="#E8A400" style="--sw:#E8A400" aria-pressed="false" title="柠檬"></button>
+          <button class="sw" data-hue="295" data-hex="#A78BFA" style="--sw:#A78BFA" aria-pressed="false" title="葡萄"></button>
+          <button class="sw" data-hue="38"  data-hex="#FF8A6B" style="--sw:#FF8A6B" aria-pressed="false" title="蜜桃"></button>
+          <button class="sw" data-hue="212" data-hex="#4FC3E8" style="--sw:#4FC3E8" aria-pressed="false" title="天青"></button>
+          <label class="sw custom" title="自定义颜色">
+            <input type="color" id="customColor" value="#5B9DF9" aria-label="自定义主题色">
+            <span>+</span>
+          </label>
+        </div>
+        <div class="sw-note">
+          主题色会同步到小组件和控制台按钮。
+        </div>
+        <div class="p-sub">玻璃浓度</div>
+        <div class="seg compact" id="glassSeg" role="group" aria-label="玻璃浓度">
+          <button data-glass="thin" aria-pressed="false">通透</button>
+          <button data-glass="standard" aria-pressed="true">标准</button>
+          <button data-glass="thick" aria-pressed="false">厚重</button>
+        </div>
+        <div class="p-sub">小表情</div>
+        <div class="input face-input">
+          <input id="face" type="text" maxlength="4" placeholder="留空 = 手绘牛马脸" aria-label="自定义小表情">
+        </div>
+        <div class="face-picks" id="facePicks" role="group" aria-label="常用小表情">
+          <button type="button" data-face="" class="wide" aria-pressed="true" title="回到手绘的牛马脸">手绘</button>
+          <button type="button" data-face="🐮" aria-pressed="false" title="牛">🐮</button>
+          <button type="button" data-face="🤑" aria-pressed="false" title="爱钱">🤑</button>
+          <button type="button" data-face="😴" aria-pressed="false" title="困">😴</button>
+          <button type="button" data-face="🥲" aria-pressed="false" title="苦笑">🥲</button>
+          <button type="button" data-face="☕️" aria-pressed="false" title="咖啡">☕️</button>
+          <button type="button" data-face="🍵" aria-pressed="false" title="茶">🍵</button>
+          <button type="button" data-face="🐷" aria-pressed="false" title="猪">🐷</button>
+          <button type="button" data-face="🐱" aria-pressed="false" title="猫">🐱</button>
+          <button type="button" data-face="🤖" aria-pressed="false" title="机器人">🤖</button>
+        </div>
+        <div class="sw-note">
+          留空就是那张手绘的脸 —— 它会随状态自己换眼睛（上班圆眼、摸鱼弯眼、下班星星眼）。
+          想换就点上面的表情或自己填一个，卡片左上角立刻变成它。
+        </div>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div class="panel">
+      <div class="p-title">打工参数</div>
+      <div class="form">
+        <div class="field" style="grid-column:1 / -1;">
+          <div class="pay-head">
+            <label for="payInput" id="payLabel">薪资参考</label>
+            <div class="seg compact" id="paySeg" role="group" aria-label="薪资单位">
+              <button type="button" data-unit="hour" aria-pressed="true">时薪</button>
+              <button type="button" data-unit="day" aria-pressed="false">日薪</button>
+              <button type="button" data-unit="month" aria-pressed="false">月薪</button>
+            </div>
+          </div>
+          <div class="input"><span class="curTag">$</span><input id="payInput" aria-describedby="hourRate hourHint" type="number" min="0" step="any" inputmode="decimal"><span id="paySuffix">/时</span></div>
+          <div class="pay-result" id="hourRate"></div>
+          <div class="hint" id="hourHint"></div>
+        </div>
+        <div class="field">
+          <label for="payday">发薪日</label>
+          <div class="input"><span>每月</span><input id="payday" type="number" min="1" max="28" step="1" inputmode="numeric"><span>号</span></div>
+        </div>
+        <div class="field">
+          <label for="start">上班时间</label>
+          <div class="input"><input id="start" type="time"></div>
+        </div>
+        <div class="field">
+          <label for="end">下班时间</label>
+          <div class="input"><input id="end" type="time"></div>
+        </div>
+        <div class="field">
+          <label for="lunchStart">午休开始</label>
+          <div class="input"><input id="lunchStart" type="time"></div>
+        </div>
+        <div class="field">
+          <label for="lunchEnd">午休结束</label>
+          <div class="input"><input id="lunchEnd" type="time"></div>
+        </div>
+        <div class="field">
+          <label for="milkTea">小奖励单价</label>
+          <div class="input"><span class="curTag">$</span><input id="milkTea" type="number" min="1" step="1" inputmode="decimal"></div>
+          <div class="hint" id="rewardHint"></div>
+        </div>
+        <div class="field">
+          <label for="rewardName">想换成什么</label>
+          <div class="input"><input id="rewardName" type="text" maxlength="20" placeholder="奶茶、咖啡、午餐…"></div>
+        </div>
+        <div class="field">
+          <label for="rewardUnit">计量单位</label>
+          <div class="input"><input id="rewardUnit" type="text" maxlength="4" placeholder="杯、顿、件…"></div>
+        </div>
+        <div class="field" style="grid-column:1 / -1;">
+          <label>每周上班日</label>
+          <div class="days" id="days">
+            <button type="button" data-day="1">一</button>
+            <button type="button" data-day="2">二</button>
+            <button type="button" data-day="3">三</button>
+            <button type="button" data-day="4">四</button>
+            <button type="button" data-day="5">五</button>
+            <button type="button" data-day="6">六</button>
+            <button type="button" data-day="0">日</button>
+          </div>
+          <div class="hint">点亮 = 上班。默认周四休息；休息日不计薪、也不算工时。</div>
+        </div>
+        <div class="switch">
+          <span class="lbl">午休不计薪</span>
+          <button class="toggle" id="lunchToggle" role="switch" aria-checked="true" aria-label="午休不计薪"></button>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="save">保存并同步小组件</button>
+        <button class="btn ghost" id="reset">恢复默认</button>
+        <span class="saved" id="savedTip">已保存</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <div class="p-title">今日喝水</div>
+        <div class="wcount-row">
+          <button class="wbtn" id="wMinus" aria-label="减一杯">−</button>
+          <div class="wcount"><b id="wCups">0</b><span class="wsep">/</span><span id="wGoalTxt">4</span><span class="wunit">杯</span></div>
+          <button class="wbtn" id="wPlus" aria-label="加一杯">＋</button>
+        </div>
+        <div class="wlog" id="wLog">
+          <div class="wlog-bars" id="wLogBars" role="img" aria-label="近 14 天喝水记录"></div>
+          <div class="wlog-days" id="wLogDays" aria-hidden="true"></div>
+          <div class="wlog-empty">还没有记录 · 点上面的 ＋ 记第一杯</div>
+          <div class="wlog-foot">
+            <span id="wLogSum">还没有记录</span>
+            <span id="wLogHit"></span>
+          </div>
+        </div>
+        <div class="form" style="margin-top:15px;">
+          <div class="field">
+            <label for="waterGoal">每天目标</label>
+            <div class="input"><input id="waterGoal" type="number" min="1" max="12" step="1" inputmode="numeric"><span>杯</span></div>
+          </div>
+          <div class="field">
+            <label for="cupMl">每杯容量</label>
+            <div class="input"><input id="cupMl" type="number" min="100" max="1000" step="50" inputmode="numeric"><span>ml</span></div>
+          </div>
+        </div>
+        <div class="sw-note">
+          小组件上的 <b>＋</b> 记一杯、<b>−</b> 撤回一杯。跨天自动归零，但<b>每天的杯数都会记进上面的记录条</b>（留最近 180 天）；
+          目标杯数决定水滴有几颗。
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:16px;">
+        <div class="p-title">现在</div>
+        <div class="stats">
+          <div class="stat hi"><div class="k">今日已入账</div><div class="v" id="sToday">$0<small>.00</small></div></div>
+          <div class="stat"><div class="k">干满一天</div><div class="v" id="sDay">$0<small>.00</small></div></div>
+          <div class="stat"><div class="k">本月已入账</div><div class="v" id="sMonth">$0<small>.00</small></div></div>
+          <div class="stat"><div class="k">今日工时</div><div class="v" id="sWt">0m</div></div>
+          <div class="stat"><div class="k">本月累积工时</div><div class="v" id="sWtM">0h</div></div>
+          <div class="stat"><div class="k">距发薪 / 距下班</div><div class="v" id="sPay">—</div></div>
+        </div>
+        <div class="tipbox">
+          <b>怎么固定在桌面？</b><br>
+          小组件已在运行，直接拖动到任意位置，下次启动会记住。
+          双击卡片、右键卡片，或点右下角的小齿轮，都能打开这个控制台。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:16px;">
+    <div class="p-head">
+      <div class="p-title">文案</div>
+      <button class="btn ghost" id="resetText" style="padding:7px 14px; font-size:12px;">全部恢复默认</button>
+    </div>
+    <div class="size-hint">留空就是用默认文案。鼓励语里可以用 <code>&lt;em&gt;…&lt;/em&gt;</code> 把几个字染成主题色。</div>
+    <div class="texts" id="texts">
+      <div class="tgroup" data-kind="working">
+        <div class="tk">打工中</div>
+        <div class="trow">
+          <label>主文案</label>
+          <input class="ti" data-field="text" placeholder="打工中">
+        </div>
+        <div class="trow">
+          <label>副文案</label>
+          <input class="ti" data-field="sub" placeholder="钱在悄悄长">
+        </div>
+        <div class="trow">
+          <label>鼓励语</label>
+          <input class="ti tq" data-field="quip" placeholder="留空 = 每次随机一句">
+        </div>
+      </div>
+      <div class="tgroup" data-kind="lunch">
+        <div class="tk">摸鱼中</div>
+        <div class="trow"><label>主文案</label><input class="ti" data-field="text" placeholder="摸鱼中"></div>
+        <div class="trow"><label>副文案</label><input class="ti" data-field="sub" placeholder="饭要认真吃"></div>
+        <div class="trow"><label>鼓励语</label><input class="ti tq" data-field="quip" placeholder="留空 = 每次随机一句"></div>
+      </div>
+      <div class="tgroup" data-kind="done">
+        <div class="tk">下班啦</div>
+        <div class="trow"><label>主文案</label><input class="ti" data-field="text" placeholder="下班啦"></div>
+        <div class="trow"><label>副文案</label><input class="ti" data-field="sub" placeholder="今天到此为止"></div>
+        <div class="trow"><label>鼓励语</label><input class="ti tq" data-field="quip" placeholder="留空 = 每次随机一句"></div>
+      </div>
+      <div class="tgroup" data-kind="before">
+        <div class="tk">还没开工</div>
+        <div class="trow"><label>主文案</label><input class="ti" data-field="text" placeholder="还没开工"></div>
+        <div class="trow"><label>副文案</label><input class="ti" data-field="sub" placeholder="先喝口水"></div>
+        <div class="trow"><label>鼓励语</label><input class="ti tq" data-field="quip" placeholder="留空 = 每次随机一句"></div>
+      </div>
+      <div class="tgroup" data-kind="off">
+        <div class="tk">今天休息</div>
+        <div class="trow"><label>主文案</label><input class="ti" data-field="text" placeholder="今天休息"></div>
+        <div class="trow"><label>副文案</label><input class="ti" data-field="sub" placeholder="电脑合上"></div>
+        <div class="trow"><label>鼓励语</label><input class="ti tq" data-field="quip" placeholder="留空 = 每次随机一句"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   状态
+   ============================================================ */
+const PAY_UNITS = ["hour", "day", "month"];
+/* 小表情按"字"截断（不是按 UTF-16 码元），最多 4 个字 */
+const clampFace = v => Array.from(String(v == null ? "" : v).trim()).slice(0, 4).join("");
+const DEFAULTS = {
+  /* 薪资可以从时薪 / 日薪 / 月薪任选一个填，但换算到最后仍然只有一个 hourly：
+     payUnit + payInput 只是"输入框里那串数字"，pay() 只认 hourly，不存在第二套口径 */
+  hourly:80, payUnit:"hour", payInput:80,
+  start:"09:00", end:"18:00",
+  lunchEnabled:true, lunchStart:"13:00", lunchEnd:"14:00",
+  payday:15, offDays:[0,4,6], theme:"light", hue:255, currency:"$", milkTea:18, rewardName:"奶茶", rewardUnit:"杯", glass:"standard",
+  /* 小表情：空 = 手绘牛马脸（随状态换眼睛），非空 = 用这个字符顶替 */
+  face:"",
+  waterGoal:4, cupMl:500, water:{date:"", cups:0}, waterLog:{},
+  texts:{}, quips:{}, ui:{}
+};
+const native = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.niuma);
+const post = (type, payload) => {
+  if (native) window.webkit.messageHandlers.niuma.postMessage(Object.assign({type}, payload || {}));
+};
+function loadState(){
+  let raw = window.__NIUMA_STATE__;
+  if (!raw) { try { raw = JSON.parse(localStorage.getItem("niuma.state") || "null"); } catch(e){ raw = null; } }
+  const s = Object.assign({}, DEFAULTS, (raw && typeof raw === "object") ? raw : {});
+  /* 旧版存过 salary/workDays，这两个字段已废弃，读进来就丢掉 */
+  delete s.salary;
+  delete s.workDays;
+  if (!(Number(s.hourly) > 0)) s.hourly = DEFAULTS.hourly;
+  /* 老 state 里没有 payUnit/payInput：当成"时薪"读，输入框显示现有的 hourly */
+  s.payUnit = Number(raw?.payInput) > 0 && PAY_UNITS.includes(s.payUnit) ? s.payUnit : "hour";
+  if (!(Number(raw?.payInput) > 0)) s.payInput = s.payUnit === "hour" ? Number(s.hourly) : DEFAULTS.payInput;
+  /* 小表情：只接受字符串，最多 4 个字符，别让长文本把卡片左上角撑爆 */
+  s.face = clampFace(typeof s.face === "string" ? s.face : "");
+  s.ui = Object.assign({}, (raw && raw.ui) || {});
+  s.water = Object.assign({ date:"", cups:0 }, (raw && raw.water) || {});
+  s.waterLog = Object.assign({}, (raw && raw.waterLog) || {});
+  /* 老版本只存了"今天几杯"，没有日志：读进来时补一条今天的，历史从今天开始记 */
+  if (s.water.date === dayKey() && Number(s.water.cups) > 0) {
+    s.waterLog[dayKey()] = Math.min(99, Math.round(Number(s.water.cups)));
+  }
+  s.texts = Object.assign({}, (raw && raw.texts) || {});
+  s.quips = Object.assign({}, (raw && raw.quips) || {});
+  return s;
+}
+let state = loadState();
+const $ = id => document.getElementById(id);
+
+/* ============================================================
+   计算
+   ============================================================ */
+const toMin = h => { const [a,b] = h.split(":").map(Number); return a*60+b; };
+const isOff = d => (Array.isArray(state.offDays) ? state.offDays.map(Number) : []).includes(d.getDay());
+function fmtHours(mins){
+  const h = Math.max(0, mins) / 60;
+  return (Math.round(h * 10) / 10).toFixed(1).replace(/\.0$/, "") + "h";
+}
+function minText(mins){
+  mins = Math.max(0, Math.round(mins));
+  if (!mins) return "0m";
+  const h = Math.floor(mins/60), m = mins%60;
+  return (h > 0 ? h+"h " : "") + m + "m";
+}
+function schedule(){
+  const s = toMin(state.start), e = toMin(state.end);
+  const ls = toMin(state.lunchStart), le = toMin(state.lunchEnd);
+  const has = state.lunchEnabled && le > ls && ls >= s && le <= e;
+  return { s, e, ls, le, has, total:(e-s) - (has ? (le-ls) : 0) };
+}
+/* ---------- 薪资单位换算 ----------
+   payUnit 只决定"输入框里那串数字是什么单位"，落盘口径永远只有 hourly。
+   日薪 → 时薪：除以每日净工时（已扣午休）；
+   月薪 → 时薪：再除以每月上班天数（每周上班天数 × 52/12，即 4.33 周/月）。 */
+const WEEKS_PER_MONTH = 52 / 12;
+const workDaysPerWeek = () => Math.max(1, 7 - (Array.isArray(state.offDays) ? state.offDays.length : 0));
+function payBasis(){
+  const hrs = schedule().total / 60;              // 每日净工时
+  const days = workDaysPerWeek();
+  return { hrs, days, daysPerMonth: days * WEEKS_PER_MONTH };
+}
+/* 1 个"该单位"等于多少小时 */
+function unitFactor(u){
+  const b = payBasis();
+  if (u === "day")   return b.hrs;
+  if (u === "month") return b.hrs * b.daysPerMonth;
+  return 1;
+}
+/* 输入框 → hourly。工时配置无效（净工时为 0）时不折算，保留上一次的值 */
+function applyPayInput(){
+  const k = unitFactor(state.payUnit);
+  const v = Math.max(0, Number(state.payInput) || 0);
+  if (!(k > 0) || !(v > 0)) return false;
+  state.hourly = v / k;
+  return true;
+}
+/* 切换单位只从当前时薪推导输入值，展示取整不参与反算。 */
+function switchPayUnit(u){
+  if (!PAY_UNITS.includes(u) || u === state.payUnit) return;
+  const factor = unitFactor(u);
+  if (!(factor > 0)) return;
+  state.payUnit = u;
+  state.payInput = state.hourly * factor;
+  paintPay(); paintStats(); paintPreviews(); persistState();
+}
+
+function workedMinutes(now){
+  const sc = schedule();
+  const cur = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60;
+  if (cur <= sc.s) return 0;
+  let w = Math.min(cur, sc.e) - sc.s;
+  if (sc.has && cur > sc.ls) w -= Math.min(cur, sc.le) - sc.ls;
+  return Math.max(0, Math.min(w, sc.total));
+}
+/* 时薪是内部唯一口径：每分钟、每天、每月都由它乘出来 */
+const hourlyRate = () => Math.max(0, Number(state.hourly) || 0);
+function money(){
+  const sc = schedule();
+  const perMin = hourlyRate() / 60;
+  const daily = perMin * sc.total;
+  const now = new Date();
+  const done = isOff(now) ? 0 : workedMinutes(now);
+  return { daily, perMin, perHour:perMin*60, perSec:perMin/60, today:done*perMin,
+           doneMin:done, progress: sc.total > 0 ? done/sc.total : 0 };
+}
+function monthEarned(now){
+  const daily = money().daily;
+  let t = 0;
+  for (let d = 1; d <= now.getDate(); d++){
+    const dt = new Date(now.getFullYear(), now.getMonth(), d);
+    if (isOff(dt)) continue;
+    t += (d === now.getDate()) ? money().today : daily;
+  }
+  return t;
+}
+function yearEarned(now){
+  const daily = money().daily;
+  let t = 0;
+  for (let m = 0; m <= now.getMonth(); m++){
+    const last = (m === now.getMonth()) ? now.getDate() : new Date(now.getFullYear(), m+1, 0).getDate();
+    for (let d = 1; d <= last; d++){
+      const dt = new Date(now.getFullYear(), m, d);
+      if (isOff(dt)) continue;
+      t += (m === now.getMonth() && d === now.getDate()) ? money().today : daily;
+    }
+  }
+  return t;
+}
+/* 说明：不再提供"月薪"这个量。旧的 monthEstimate 已删，
+   涉及月的地方只报"本月已入账"，即实际赚到的钱。 */
+/* 本月累积工时：已过的工作日按整天算，今天按实际已干算 */
+function monthMinutes(now){
+  const sc = schedule();
+  const today = money().doneMin;
+  let t = 0;
+  for (let d = 1; d <= now.getDate(); d++){
+    const dt = new Date(now.getFullYear(), now.getMonth(), d);
+    if (isOff(dt)) continue;
+    t += (d === now.getDate()) ? today : sc.total;
+  }
+  return t;
+}
+function daysToPayday(now){
+  const p = Math.max(1, Math.min(28, state.payday));
+  let target = new Date(now.getFullYear(), now.getMonth(), p);
+  if (now.getDate() > p) target = new Date(now.getFullYear(), now.getMonth()+1, p);
+  const a = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.max(0, Math.round((target-a)/86400000));
+}
+function leftText(){
+  const sc = schedule(); const now = new Date();
+  let m = sc.e - (now.getHours()*60 + now.getMinutes());
+  if (m <= 0) return "0m";
+  const h = Math.floor(m/60); return (h > 0 ? h+"h " : "") + (m%60) + "m";
+}
+
+/* ============================================================
+   颜色：hex → OKLCH 色相
+   ============================================================ */
+function hexToHue(hex){
+  const r = parseInt(hex.slice(1,3),16)/255,
+        g = parseInt(hex.slice(3,5),16)/255,
+        b = parseInt(hex.slice(5,7),16)/255;
+  const lin = c => c <= 0.04045 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4);
+  const R = lin(r), G = lin(g), B = lin(b);
+  const l_ = Math.cbrt(0.4122214708*R + 0.5363325363*G + 0.0514459929*B);
+  const m_ = Math.cbrt(0.2119034982*R + 0.6806995451*G + 0.1073969566*B);
+  const s_ = Math.cbrt(0.0883024619*R + 0.2817188376*G + 0.6299787005*B);
+  const A = 1.9779984951*l_ - 4.2070602104*m_ + 2.2290924706*s_;
+  const Bb = 0.0259040371*l_ + 0.7827717662*m_ - 0.0287457814*s_;
+  let h = Math.atan2(Bb, A) * 180 / Math.PI;
+  if (h < 0) h += 360;
+  return Math.round(h);
+}
+
+/* ============================================================
+   表单
+   ============================================================ */
+const FIELDS = ["start","end","lunchStart","lunchEnd","payday","milkTea","waterGoal","cupMl"];
+
+/* 薪资输入框：单位、后缀、显隐都在这里统一刷 */
+const UNIT_TEXT = { hour:["/时"], day:["/天"], month:["/月"] };
+function payDisplayValue(){
+  return String(Number(Number(state.payInput).toFixed(state.payUnit === "month" ? 0 : 2)));
+}
+function paintPay(){
+  document.querySelectorAll("#paySeg button").forEach(b => {
+    b.setAttribute("aria-pressed", b.dataset.unit === state.payUnit ? "true" : "false");
+  });
+  const sfx = $("paySuffix");
+  if (sfx) sfx.textContent = (UNIT_TEXT[state.payUnit] || UNIT_TEXT.hour)[0];
+  const inp = $("payInput");
+  /* 正在输入时不要回写，否则光标的中间态会被覆盖 */
+  if (inp && document.activeElement !== inp) inp.value = payDisplayValue();
+}
+
+function applyHue(h, persist){
+  state.hue = h;
+  document.documentElement.style.setProperty("--h", String(h));
+  document.querySelectorAll(".sw[data-hue]").forEach(b => {
+    b.setAttribute("aria-pressed", Number(b.dataset.hue) === h ? "true" : "false");
+  });
+  if (persist) persistState();
+}
+
+function paintForm(){
+  FIELDS.forEach(k => { if ($(k)) $(k).value = state[k]; });
+  paintPay(); paintFace();
+  ["rewardName","rewardUnit"].forEach(k => { $(k).value = state[k]; });
+  $("lunchToggle").setAttribute("aria-checked", state.lunchEnabled ? "true" : "false");
+  document.querySelectorAll(".sw[data-hue]").forEach(b => {
+    b.setAttribute("aria-pressed", Number(b.dataset.hue) === state.hue ? "true" : "false");
+  });
+  document.documentElement.style.setProperty("--h", String(state.hue ?? 255));
+}
+
+function persistState(){
+  if (native) { post("saveConfig", {data: state}); return; }
+  try { localStorage.setItem("niuma.state", JSON.stringify(state)); } catch(e){}
+}
+
+function num(v){ return v.toLocaleString("zh-CN", {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function paintStats(){
+  const now = new Date();
+  const m = money();
+  const put = (id, v) => {
+    const [i, d] = num(v).split(".");
+    $(id).innerHTML = `${state.currency}${i}<small>.${d}</small>`;
+  };
+  put("sToday", m.today);
+  /* 时薪是基准，不再展示"时薪/每秒"这两个派生量：
+     左边报今天干满能拿多少，右边报这个月已经赚到多少 */
+  if ($("sDay"))   put("sDay", m.daily);
+  if ($("sMonth")) put("sMonth", monthEarned(now));
+  /* 工时：今日已干 + 本月累积（休息日不计） */
+  if ($("sWt"))  $("sWt").textContent  = minText(m.doneMin);
+  if ($("sWtM")) $("sWtM").textContent = fmtHours(monthMinutes(now));
+  const done = now.getHours()*60 + now.getMinutes() >= toMin(state.end);
+  $("sPay").innerHTML = done
+    ? `${daysToPayday(now)}<small>天发薪</small>`
+    : `${leftText()}<small>下班</small>`;
+  paintPaySummary();
+  paintWater();
+}
+
+function paintPaySummary(){
+  $("rewardHint").textContent = `今天赚到 ${(money().today / Math.max(1, Number(state.milkTea) || 18)).toFixed(1)} ${state.rewardUnit}${state.rewardName}`;
+  const input = $("payInput");
+  const basis = payBasis();
+  const factor = unitFactor(state.payUnit);
+  const draft = Number(input.value);
+  const editing = document.activeElement === input && input.value !== payDisplayValue();
+  const rate = editing && factor > 0 && draft > 0 && Number.isFinite(draft / factor)
+    ? draft / factor : Number(state.hourly);
+  $("hourRate").textContent = `折合 ${state.currency}${num(rate)} / 时`;
+  const hours = basis.hrs.toLocaleString("zh-CN", {maximumFractionDigits:2});
+  $("hourHint").textContent = basis.hrs > 0
+    ? `每天净工时 ${hours} 小时 · 月均 ${basis.daysPerMonth.toFixed(1)} 个工作日`
+    : "请检查上下班时间与午休时段，净工时需大于 0。";
+}
+
+/* ============================================================
+   喝水
+   ============================================================ */
+function dayKey(d){
+  d = d || new Date();
+  return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+}
+function cupsToday(){
+  const w = state.water || {};
+  if (w.date !== dayKey()) return 0;
+  const n = Math.round(Number(w.cups));
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+function paintWater(){
+  $("wCups").textContent = cupsToday();
+  $("wGoalTxt").textContent = Math.max(1, Math.round(Number(state.waterGoal) || 4));
+  paintLog();
+}
+
+/* ---------- 每日记录 ----------
+   日志是 { "2026-11-4": 3 } 这样的扁平字典：跨天不清空，只往当天格子里写。
+   只留最近 180 天，免得 state.json 越滚越大。 */
+const LOG_DAYS = 14;      // 面板里显示多少天
+const LOG_KEEP = 180;     // 落盘保留多少天
+function keyTime(k){
+  const [y, m, d] = String(k).split("-").map(Number);
+  return new Date(y || 1970, (m || 1) - 1, d || 1).getTime();
+}
+function logCups(k){
+  const v = Math.round(Number((state.waterLog || {})[k]));
+  return Number.isFinite(v) && v > 0 ? v : 0;
+}
+function recordWater(n){
+  const log = Object.assign({}, state.waterLog || {});
+  log[dayKey()] = Math.max(0, Math.min(99, Math.round(n)));
+  const keys = Object.keys(log).sort((a, b) => keyTime(a) - keyTime(b));
+  for (let i = 0; i < keys.length - LOG_KEEP; i++) delete log[keys[i]];
+  state.waterLog = log;
+}
+const WD = ["日", "一", "二", "三", "四", "五", "六"];
+function paintLog(){
+  const bars = $("wLogBars"), daysRow = $("wLogDays");
+  if (!bars) return;
+  const goal = Math.max(1, Math.min(12, Math.round(Number(state.waterGoal)) || 4));
+  const today = new Date();
+  const days = [];
+  for (let i = LOG_DAYS - 1; i >= 0; i--){
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+    const k = dayKey(d);
+    days.push({ d, n: i === 0 ? cupsToday() : logCups(k) });
+  }
+  const peak = Math.max(goal, ...days.map(x => x.n));
+  bars.style.setProperty("--goal-top", (100 - (goal / peak) * 100).toFixed(1) + "%");
+  bars.innerHTML = days.map((x, i) => {
+    const h = x.n === 0 ? 4 : Math.max(9, Math.round((x.n / peak) * 100));
+    const cls = ["wb", x.n >= goal ? "hi" : "", x.n === 0 ? "zero" : ""].filter(Boolean).join(" ");
+    const label = `${x.d.getMonth() + 1}月${x.d.getDate()}日 · ${x.n} 杯`;
+    return `<i class="${cls}" style="height:${h}%" title="${label}" aria-label="${label}"></i>`;
+  }).join("");
+  if (daysRow){
+    daysRow.innerHTML = days.map((x, i) =>
+      `<span class="${i === LOG_DAYS - 1 ? "today" : ""}">${
+        i === LOG_DAYS - 1 ? "今" : WD[x.d.getDay()]}</span>`).join("");
+  }
+  const rec = days.filter(x => x.n > 0);
+  const sum = days.reduce((a, x) => a + x.n, 0);
+  const hit = days.filter(x => x.n >= goal).length;
+  const cupMl = Number(state.cupMl) > 0 ? Number(state.cupMl) : 500;
+  $("wLogSum").innerHTML = rec.length
+    ? `<b>${rec.length}</b> 天有记录 · 平均 <b>${(sum / rec.length).toFixed(1)}</b> 杯 · 共 <b>${(sum * cupMl / 1000).toFixed(1)}</b> L`
+    : `还没有记录，点上面的 <b>＋</b> 记第一杯`;
+  $("wLogHit").textContent = rec.length ? `达标 ${hit} 天` : "";
+  $("wLog").classList.toggle("is-empty", !rec.length);
+}
+
+function adjustWater(delta){
+  if (native) { post("adjustWater", {delta}); return; }
+  const n = cupsToday() + delta;
+  state.water = { date: dayKey(), cups: Math.max(0, Math.min(99, Math.round(n))) };
+  recordWater(state.water.cups);
+  paintWater(); paintPreviews(); debouncePersist();
+}
+$("wPlus").addEventListener("click", () => adjustWater(1));
+$("wMinus").addEventListener("click", () => adjustWater(-1));
+["waterGoal","cupMl"].forEach(k => {
+  $(k).addEventListener("input", () => {
+    state[k] = Number($(k).value) || DEFAULTS[k];
+    paintWater(); paintPreviews();
+  });
+});
+
+/* ============================================================
+   文案
+   ============================================================ */
+function paintTexts(){
+  document.querySelectorAll(".tgroup").forEach(g => {
+    const k = g.dataset.kind;
+    g.querySelectorAll(".ti").forEach(inp => {
+      const f = inp.dataset.field;
+      inp.value = (f === "quip")
+        ? ((state.quips && state.quips[k]) || "")
+        : ((state.texts && state.texts[k] && state.texts[k][f]) || "");
+    });
+  });
+}
+document.querySelectorAll(".ti").forEach(inp => {
+  inp.addEventListener("input", () => {
+    const k = inp.closest(".tgroup").dataset.kind;
+    const f = inp.dataset.field;
+    if (f === "quip"){
+      state.quips = Object.assign({}, state.quips, { [k]: inp.value });
+    } else {
+      const cur = Object.assign({}, state.texts[k] || {});
+      cur[f] = inp.value;
+      state.texts = Object.assign({}, state.texts, { [k]: cur });
+    }
+    paintPreviews();
+    debouncePersist();
+  });
+});
+$("resetText").addEventListener("click", () => {
+  state.texts = {}; state.quips = {};
+  paintTexts(); persistState(); paintPreviews(); flashSaved();
+});
+
+/* ============================================================
+   预览
+   ============================================================ */
+function baseURL(){ return location.href.replace(/dashboard\.html.*$/, "widget.html"); }
+let previewKind = "";
+function previewQuery(){
+  const p = new URLSearchParams();
+  FIELDS.forEach(k => p.set(k, $(k) ? $(k).value : state[k]));
+  /* 小组件只认时薪：预览传的是折算后的 hourly，而不是输入框里那个数 */
+  p.set("hourly", String(state.hourly));
+  p.set("offDays", JSON.stringify(state.offDays));
+  p.set("lunch", $("lunchToggle").getAttribute("aria-checked") === "true" ? "1" : "0");
+  p.set("hue", String(state.hue));
+  p.set("glass", state.glass || "standard");
+  /* 空串也要传：不然 iframe 里 localStorage 的旧表情会残留，预览跟"手绘"对不上 */
+  p.set("face", state.face || "");
+  // iframe 透出控制台的同一张仿桌面背景。
+  p.set("pv", "stage");
+  p.set("rewardName", state.rewardName);
+  p.set("rewardUnit", state.rewardUnit);
+  /* 预览要看得见喝水与自定义文案 */
+  p.set("water", String(cupsToday()));
+  p.set("goal", String(state.waterGoal || 4));
+  p.set("cup", String(state.cupMl || 500));
+  p.set("txt", JSON.stringify(state.texts || {}));
+  p.set("quips", JSON.stringify(state.quips || {}));
+  if (previewKind) p.set("state", previewKind);
+  return p.toString();
+}
+let pvTimer;
+function paintPreviews(){
+  clearTimeout(pvTimer);
+  pvTimer = setTimeout(() => {
+    const src = baseURL() + "?" + previewQuery();
+    document.querySelectorAll("iframe[data-size]").forEach(f => {
+      if (f.getAttribute("src") !== src) f.src = src;
+    });
+  }, 60);
+}
+
+document.querySelectorAll("#previewState button").forEach(button => {
+  button.addEventListener("click", () => {
+    previewKind = button.dataset.kind;
+    document.querySelectorAll("#previewState button").forEach(option => {
+      option.setAttribute("aria-pressed", String(option === button));
+    });
+    paintPreviews();
+  });
+});
+
+/* ============================================================
+   事件
+   ============================================================ */
+let saveTimer;
+function flashSaved(){
+  const t = $("savedTip");
+  t.classList.add("on");
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => t.classList.remove("on"), 1800);
+}
+/* 文案/喝水这类连续操作不每次落盘，停手 500ms 再存 */
+let persistTimer;
+function debouncePersist(){
+  clearTimeout(persistTimer);
+  persistTimer = setTimeout(persistState, 500);
+}
+
+$("save").addEventListener("click", () => {
+  FIELDS.forEach(k => {
+    const v = $(k).value;
+    if (!v) return;
+    state[k] = (k === "start" || k === "end" || k === "lunchStart" || k === "lunchEnd") ? v : Number(v);
+  });
+  state.lunchEnabled = $("lunchToggle").getAttribute("aria-checked") === "true";
+  persistState();
+  flashSaved();
+  paintStats();
+  paintPreviews();
+});
+
+$("reset").addEventListener("click", () => {
+  /* 恢复默认只动配置：喝水记录是攒下来的数据，不能被一起抹掉 */
+  Object.assign(state, DEFAULTS, {
+    ui: state.ui,
+    water: state.water,
+    waterLog: state.waterLog || {},
+    texts: {},
+    quips: {}
+  });
+  paintForm(); paintDays(); paintTexts(); paintStats(); paintPreviews();
+  persistState();
+});
+
+$("lunchToggle").addEventListener("click", () => {
+  const on = $("lunchToggle").getAttribute("aria-checked") === "true";
+  $("lunchToggle").setAttribute("aria-checked", on ? "false" : "true");
+  /* 午休不计薪 → 净工时变短 → 日薪/月薪折出来的时薪要跟着变 */
+  state.lunchEnabled = !on;
+  applyPayInput();
+  paintStats();
+  paintPreviews();
+});
+
+document.querySelectorAll(".sw[data-hue]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    applyHue(Number(btn.dataset.hue), true);
+    $("customColor").value = btn.dataset.hex;
+    paintPreviews();
+    flashSaved();
+  });
+});
+
+$("customColor").addEventListener("input", e => {
+  const h = hexToHue(e.target.value);
+  applyHue(h, false);
+  document.querySelectorAll(".sw[data-hue]").forEach(b => b.setAttribute("aria-pressed", "false"));
+  paintPreviews();
+});
+$("customColor").addEventListener("change", () => { persistState(); flashSaved(); });
+
+/* ============================================================
+   玻璃浓度
+   ============================================================ */
+function paintGlass(){
+  const cur = state.glass || "standard";
+  document.querySelectorAll("#glassSeg button").forEach(b => {
+    b.setAttribute("aria-pressed", b.dataset.glass === cur ? "true" : "false");
+  });
+}
+document.querySelectorAll("#glassSeg button").forEach(b => {
+  b.addEventListener("click", () => {
+    state.glass = b.dataset.glass;
+    paintGlass(); persistState(); paintPreviews(); flashSaved();
+  });
+});
+
+/* ============================================================
+   小表情
+   ============================================================ */
+function paintFace(){
+  const inp = $("face");
+  if (inp && document.activeElement !== inp) inp.value = state.face || "";
+  document.querySelectorAll("#facePicks button").forEach(b => {
+    b.setAttribute("aria-pressed", (b.dataset.face || "") === (state.face || "") ? "true" : "false");
+  });
+}
+function setFace(v){
+  state.face = clampFace(v);
+  paintFace(); paintPreviews();
+}
+$("face").addEventListener("input", () => {
+  /* 边打边看：不写额外判空，空串本身就是"回手绘脸" */
+  state.face = clampFace($("face").value);
+  document.querySelectorAll("#facePicks button").forEach(b => {
+    b.setAttribute("aria-pressed", (b.dataset.face || "") === (state.face || "") ? "true" : "false");
+  });
+  paintPreviews(); debouncePersist();
+});
+$("face").addEventListener("change", () => {
+  const v = clampFace($("face").value);
+  $("face").value = v;
+  setFace(v); persistState(); flashSaved();
+});
+document.querySelectorAll("#facePicks button").forEach(b => {
+  b.addEventListener("click", () => {
+    setFace(b.dataset.face || "");
+    persistState(); flashSaved();
+  });
+});
+
+/* ============================================================
+   尺寸
+   ============================================================ */
+const SIZE_NOTE = { small:"小号 163 × 163", medium:"中号 343 × 163", large:"大号 343 × 343" };
+function currentSize(){
+  const s = state.ui && state.ui.cardSize;
+  return (s === "small" || s === "large") ? s : "medium";
+}
+function paintSize(){
+  const cur = currentSize();
+  document.querySelectorAll("#sizeSeg button").forEach(b => {
+    b.setAttribute("aria-pressed", b.dataset.size === cur ? "true" : "false");
+  });
+  document.querySelectorAll(".pv").forEach(p => {
+    const sz = p.querySelector("iframe")?.dataset.size;
+    p.classList.toggle("on", sz === cur);
+    p.setAttribute("aria-pressed", sz === cur ? "true" : "false");
+  });
+  const hint = document.querySelector(".size-hint");
+  if (hint) hint.textContent = `当前 ${SIZE_NOTE[cur]}；点下面任意一张预览也能切换，改完立即生效。`;
+}
+function applySize(size){
+  if (!size || size === currentSize()) return;
+  state.ui = Object.assign({}, state.ui, { cardSize: size });
+  try { localStorage.setItem("niuma.state", JSON.stringify(state)); } catch(e){}
+  post("resize", { size });
+  paintSize();
+  flashSaved();
+}
+document.querySelectorAll("#sizeSeg button").forEach(b => {
+  b.addEventListener("click", () => applySize(b.dataset.size));
+});
+document.querySelectorAll(".pv").forEach(p => {
+  p.addEventListener("click", () => applySize(p.querySelector("iframe")?.dataset.size));
+  p.setAttribute("role", "button");
+  p.setAttribute("tabindex", "0");
+  p.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); applySize(p.querySelector("iframe")?.dataset.size); }
+  });
+});
+
+
+/* 每周上班日：点亮 = 上班。存的是它的反面 offDays，写小组件时不用再换算 */
+function paintDays(){
+  const off = (Array.isArray(state.offDays) ? state.offDays : []).map(Number);
+  document.querySelectorAll("#days button").forEach(b => {
+    b.setAttribute("aria-pressed", off.includes(Number(b.dataset.day)) ? "false" : "true");
+  });
+}
+document.querySelectorAll("#days button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const day = Number(btn.dataset.day);
+    const off = new Set((Array.isArray(state.offDays) ? state.offDays : []).map(Number));
+    if (off.has(day)) off.delete(day); else off.add(day);
+    state.offDays = Array.from(off).sort((x, y) => x - y);
+    /* 每月上班天数变了，月薪↔时薪的折算跟着变 */
+    applyPayInput();
+    paintDays(); paintStats(); paintPreviews(); persistState();
+  });
+});
+
+FIELDS.forEach(k => {
+  if (!$(k)) return;
+  $(k).addEventListener("input", paintStats);
+  $(k).addEventListener("change", () => {
+    const v = $(k).value;
+    if (v) state[k] = (k === "start" || k === "end" || k === "lunchStart" || k === "lunchEnd") ? v : Number(v);
+    /* 日薪/月薪是按工时分出来的：时间一改就得重新折算，否则时薪还是旧工时算的那个 */
+    if (["start","end","lunchStart","lunchEnd"].includes(k)) applyPayInput();
+    paintStats(); paintPreviews();
+  });
+});
+
+["rewardName","rewardUnit"].forEach(key => {
+  $(key).addEventListener("change", () => {
+    state[key] = $(key).value.trim().slice(0, key === "rewardName" ? 20 : 4) || DEFAULTS[key];
+    $(key).value = state[key];
+    paintStats(); paintPreviews(); persistState();
+  });
+});
+
+/* ============================================================
+   薪资参考：时薪 / 日薪 / 月薪
+   ============================================================ */
+document.querySelectorAll("#paySeg button").forEach(b => {
+  b.addEventListener("click", () => switchPayUnit(b.dataset.unit));
+});
+$("payInput").addEventListener("input", paintPaySummary);
+$("payInput").addEventListener("change", () => {
+  const value = Number($("payInput").value);
+  const factor = unitFactor(state.payUnit);
+  if (Number.isFinite(value) && value > 0 && factor > 0 && Number.isFinite(value / factor)) {
+    state.payInput = value;
+    applyPayInput();
+    persistState();
+    flashSaved();
+  }
+  $("payInput").value = payDisplayValue();
+  paintStats(); paintPreviews();
+});
+
+/* ============================================================
+   启动
+   ============================================================ */
+/* 原生在窗口获得焦点时推来真实状态：只同步"两边都会改"的喝水杯数，
+   其余表单项以控制台里正在编辑的值为准，避免把用户没保存的输入冲掉 */
+window.NMWD = {
+  setStore(s){
+    try {
+      if (s && s.water) state.water = Object.assign({ date:"", cups:0 }, s.water);
+      /* 小组件那边每记一杯都会更新日志，这里也要跟着换，否则控制台再保存一次
+         就会拿旧日志把刚记的那天盖回去 */
+      if (s && s.waterLog) state.waterLog = Object.assign({}, s.waterLog);
+      paintStats(); paintPreviews();
+    } catch(e){}
+  }
+};
+window.addEventListener("focus", () => post("pullState"));
+
+paintForm();
+paintDays();
+paintTexts();
+paintStats();
+paintSize();
+paintGlass();
+paintPreviews();
+setInterval(paintStats, 1000);
+</script>
+</body>
+</html>

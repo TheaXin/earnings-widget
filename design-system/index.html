@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>牛马鼓励器 · 设计规范 v1.0</title>
+<style>
+:root{
+  --font-round: ui-rounded, "SF Pro Rounded", "Yuanti SC", "PingFang SC", -apple-system, sans-serif;
+  --font-sans: "Yuanti SC", "PingFang SC", -apple-system, "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  --ink:#1D2530; --ink-2:#4B5563; --ink-3:#7C8794;
+  --line:#E6EAF0; --line-2:#F0F3F7;
+  --bg:#FBFCFF; --card:#FFFFFF;
+  --accent:#1157A4; --accent-2:#4087DE; --accent-soft:#EAF2FE;
+  --mint:#1F9E86; --lemon:#9A6B00;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:var(--font-sans); background:var(--bg); color:var(--ink);
+  -webkit-font-smoothing:antialiased; line-height:1.7;
+  font-size:14.5px;
+}
+.wrap{max-width:1080px; margin:0 auto; padding:0 32px 120px;}
+
+/* ---------- 封面 ---------- */
+.cover{padding:88px 0 56px; border-bottom:1px solid var(--line); margin-bottom:48px;}
+.eyebrow{
+  font-family:var(--font-round); font-size:11px; font-weight:700;
+  letter-spacing:.18em; text-transform:uppercase; color:var(--accent-2);
+}
+h1{
+  font-family:var(--font-round); font-size:46px; font-weight:800;
+  letter-spacing:-.03em; margin:14px 0 12px; line-height:1.12;
+}
+.lede{font-size:16px; color:var(--ink-2); max-width:620px;}
+.meta{display:flex; gap:28px; margin-top:32px; flex-wrap:wrap;}
+.meta div{font-size:12px; color:var(--ink-3);}
+.meta b{display:block; font-size:13.5px; color:var(--ink); font-weight:600; margin-top:2px;}
+
+/* ---------- 章节 ---------- */
+section{margin-bottom:72px; scroll-margin-top:24px;}
+h2{
+  font-family:var(--font-round); font-size:13px; font-weight:800;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--accent);
+  display:flex; align-items:center; gap:12px; margin-bottom:8px;
+}
+h2::after{content:""; flex:1; height:1px; background:var(--line);}
+h3{font-family:var(--font-round); font-size:21px; font-weight:700; letter-spacing:-.015em; margin:28px 0 12px;}
+h4{font-size:13px; font-weight:700; color:var(--ink); margin:20px 0 8px; letter-spacing:.01em;}
+p{color:var(--ink-2); margin:10px 0;}
+p strong,li strong{color:var(--ink); font-weight:600;}
+ul{margin:10px 0 10px 20px; color:var(--ink-2);}
+li{margin:5px 0;}
+code{
+  font-family:var(--font-mono); font-size:12.5px;
+  background:var(--line-2); padding:2px 6px; border-radius:5px; color:#1B4F8A;
+}
+a{color:var(--accent); text-decoration:none; border-bottom:1px solid #BFD4EC;}
+
+/* ---------- 卡片 ---------- */
+.card{
+  background:var(--card); border:1px solid var(--line); border-radius:18px;
+  padding:22px 24px; margin:16px 0;
+}
+.grid-2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+.grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
+@media (max-width:820px){ .grid-2,.grid-3{grid-template-columns:1fr;} }
+
+/* ---------- 表格 ---------- */
+table{width:100%; border-collapse:collapse; margin:14px 0; font-size:13px;}
+th{
+  text-align:left; font-size:11px; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--ink-3); font-weight:700; padding:8px 10px; border-bottom:1px solid var(--line);
+}
+td{padding:9px 10px; border-bottom:1px solid var(--line-2); color:var(--ink-2); vertical-align:top;}
+td b{color:var(--ink); font-weight:600;}
+tr:last-child td{border-bottom:none;}
+.mono{font-family:var(--font-mono); font-size:12px; color:var(--ink);}
+.pass{color:var(--mint); font-weight:700;}
+.warn{color:#B4690E; font-weight:700;}
+
+/* ---------- 色卡 ---------- */
+.swatches{display:flex; gap:10px; flex-wrap:wrap; margin:14px 0;}
+.swatch{width:64px; text-align:center;}
+.swatch i{
+  display:block; height:52px; border-radius:12px; border:1px solid rgba(0,0,0,.06);
+}
+.swatch span{display:block; font-size:10px; color:var(--ink-3); margin-top:6px; font-family:var(--font-mono);}
+
+/* ---------- 玻璃层示意 ---------- */
+.layers{margin:20px 0;}
+.layer{
+  display:grid; grid-template-columns:34px 1fr; gap:16px;
+  padding:14px 0; border-bottom:1px dashed var(--line);
+}
+.layer:last-child{border-bottom:none;}
+.layer .n{
+  font-family:var(--font-round); font-size:12px; font-weight:800; color:#fff;
+  background:var(--accent); width:26px; height:26px; border-radius:50%;
+  display:grid; place-items:center;
+}
+.layer h5{font-size:13.5px; font-weight:700; margin-bottom:3px;}
+.layer p{margin:0; font-size:12.5px;}
+.tag{
+  display:inline-block; font-size:10.5px; font-weight:700; letter-spacing:.04em;
+  padding:2px 7px; border-radius:5px; background:var(--accent-soft); color:var(--accent);
+  margin-left:6px; vertical-align:1px;
+}
+
+/* ---------- 图片 ---------- */
+figure{margin:18px 0;}
+figure img{
+  width:100%; display:block; border-radius:14px;
+  border:1px solid var(--line); background:#F2F5FA;
+}
+figcaption{font-size:12px; color:var(--ink-3); margin-top:8px;}
+.shot-row{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+@media (max-width:820px){ .shot-row{grid-template-columns:1fr;} }
+
+/* ---------- 组件解剖 ---------- */
+.anat{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+@media (max-width:820px){ .anat{grid-template-columns:1fr;} }
+.anat .card h4{margin-top:0;}
+.anat ol{margin-left:18px; font-size:12.5px;}
+
+/* ---------- 引用 ---------- */
+.pull{
+  border-left:3px solid var(--accent-2); padding:4px 0 4px 18px; margin:20px 0;
+  color:var(--ink); font-size:14.5px;
+}
+.note{
+  background:#FFF8EC; border:1px solid #F2DFBE; border-radius:12px;
+  padding:14px 16px; font-size:12.5px; color:#6B4E12; margin:16px 0;
+}
+.note b{color:#5A3F07;}
+
+/* ---------- 目录 ---------- */
+.toc{
+  position:sticky; top:0; background:rgba(251,252,255,.92);
+  backdrop-filter:blur(12px); border-bottom:1px solid var(--line);
+  z-index:10; margin-bottom:40px; padding:12px 0;
+}
+.toc ol{display:flex; gap:6px; list-style:none; margin:0; flex-wrap:wrap;}
+.toc a{
+  font-size:12px; color:var(--ink-2); border:none; padding:5px 10px;
+  border-radius:99px; display:block;
+}
+.toc a:hover{background:var(--accent-soft); color:var(--accent);}
+</style>
+</head>
+<body>
+
+<div class="toc">
+  <div class="wrap" style="padding-bottom:0;">
+    <ol>
+      <li><a href="#position">00 定位</a></li>
+      <li><a href="#material">01 玻璃材质</a></li>
+      <li><a href="#revision">01b 本轮优化</a></li>
+      <li><a href="#color">02 色彩</a></li>
+      <li><a href="#type">03 字体</a></li>
+      <li><a href="#size">04 尺寸</a></li>
+      <li><a href="#anatomy">05 组件解剖</a></li>
+      <li><a href="#states">06 状态矩阵</a></li>
+      <li><a href="#motion">07 动效</a></li>
+      <li><a href="#a11y">08 无障碍</a></li>
+      <li><a href="#contract">09 主题契约</a></li>
+    </ol>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="cover">
+    <div class="eyebrow">Design System · macOS Desktop Widget</div>
+    <h1>牛马鼓励器</h1>
+    <p class="lede">
+      一块常驻桌面的玻璃卡片：把时薪拆成每秒都在跳动的数字，告诉你今天已经赚到多少、本月走到哪一步、还有多久下班。
+      这套规范定义它的材质、色彩、字阶、尺寸与交互，让它在任何壁纸上都像一块真玻璃，而不是一块贴上去的白纸。
+    </p>
+    <div class="meta">
+      <div>版本<b>v1.1</b></div>
+      <div>载体<b>macOS 12+ · 无边框 NSPanel</b></div>
+      <div>技术<b>Objective-C + WKWebView</b></div>
+      <div>规范日期<b>2026-11-04</b></div>
+    </div>
+  </header>
+
+  <!-- ================= 00 定位 ================= -->
+  <section id="position">
+    <h2>00 · 定位与原则</h2>
+
+    <h3>它是什么</h3>
+    <p>
+      一个<strong>不需要打开、不需要点击就会持续汇报</strong>的桌面小组件。核心信息只有三件事：今日已入账、本月进度、距下班时间。
+      其余信息（时薪、每秒收入、奶茶换算）属于情绪价值，只在最大尺寸出现。
+    </p>
+
+    <h3>四条设计原则</h3>
+    <div class="grid-2">
+      <div class="card">
+        <h4>1 · 一眼一个主数字</h4>
+        <p>金额是视觉锚点，字号最大、字重最重。其余文字必须比它小两级以上，不允许出现第二个人们会先看到的东西。</p>
+      </div>
+      <div class="card">
+        <h4>2 · 玻璃是材质，不是滤镜</h4>
+        <p>必须真的模糊桌面之后的像素，并让壁纸的颜色透上来。用半透明白色叠一层做出来的"伪玻璃"，在任何壁纸上都是同一块灰塑料。</p>
+      </div>
+      <div class="card">
+        <h4>3 · 只换色相，不换结构</h4>
+        <p>用户可以改主题色，但改的只是 OKLCH 的 h 一个变量。明度与饱和度由系统锁定，因此任何颜色的对比度都在安全区内。</p>
+      </div>
+      <div class="card">
+        <h4>4 · 信息密度跟着尺寸走</h4>
+        <p>小号只留金额，中号加月度进度，大号才出现时薪、每秒收入、奶茶换算。不是等比缩放，是重新排版。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 01 玻璃材质 ================= -->
+  <section id="material">
+    <h2>01 · 玻璃材质</h2>
+
+    <p>
+      整套规范里技术含量最高、也最容易做砸的部分。先说结论：
+      <strong>在透明 WKWebView 里，CSS 的 <code>backdrop-filter</code> 拿不到窗口背后的桌面像素</strong>，
+      它只能模糊页面内部自己的内容。所以真正的桌面磨砂必须由原生 <code>NSVisualEffectView</code> 提供。
+    </p>
+
+    <div class="note">
+      <b>但反过来，原生材质单独用也不够。</b><br>
+      原生磨砂要真透，就得把 <code>alphaValue</code> 压下来；一压下来，窗口就会把
+      <b>没被模糊的桌面</b>一起混进来——表现为能看穿卡片看到背后窗口的锐利直角。
+      解法是把两者串起来：<b>原生压 alpha 负责"透"，CSS 的 <code>backdrop-filter</code> 在合成结果上再糊一次负责"干净"</b>。
+      这一层现在真的有用，因为它模糊的是原生已经渲染出来的画面，而不是空气。
+    </div>
+
+    <h3>玻璃由 7 层叠成</h3>
+    <div class="layers">
+      <div class="layer">
+        <div class="n">1</div>
+        <div>
+          <h5>背景磨砂 <span class="tag">原生</span></h5>
+          <p><code>NSVisualEffectView</code>，<code>material = .popover</code>（夜间 <code>.hudWindow</code>），<code>blendingMode = behindWindow</code>。圆角遮罩只覆盖卡片区域，不含阴影外扩的 8.5px 透明边。<b>通透度的第一道闸门就是这里</b>：<code>alphaValue</code> 压到 通透 .06 / 标准 .12 / 厚重 .34（夜间 .10 / .28 / .55）。Popover 材质本身就偏白，alpha 一高，屏幕上就是一块灰塑料——这是返工最多的一处。</p>
+        </div>
+      </div>
+      <div class="layer">
+        <div class="n">2</div>
+        <div>
+          <h5>不做二次模糊 <span class="tag">CSS</span></h5>
+          <p>这一层是<b>刻意的空位</b>：不用 <code>backdrop-filter</code>。无边框透明窗口里它采样不到真正的桌面，只会把元素自己涂上一层灰膜——实测就是"卡片发灰像塑料"的直接原因。磨砂只由第 1 层负责，CSS 这侧只做染色。</p>
+        </div>
+      </div>
+      <div class="layer">
+        <div class="n">3</div>
+        <div>
+          <h5>染色薄纱 <span class="tag">CSS</span></h5>
+          <p>左上一点暖光（<code>--glass-tint</code>，色相固定 84°，不跟主题漂移）＋ 一层 <code>--glass-1 → --glass-2</code> 的线性渐变。<b>奶油感全部来自这一层</b>，也是三档浓度差异的主要来源。</p>
+        </div>
+      </div>
+      <div class="layer">
+        <div class="n">4</div>
+        <div>
+          <h5>颗粒 <span class="tag">CSS</span></h5>
+          <p>内联 SVG <code>feTurbulence</code> 噪点，浓度 3.4%（夜间 4.8%）。真实玻璃有微纹理，绝对平滑的渐变正是"塑料感"的来源。这一层要淡到看不出颗粒、但拿掉就觉得假。</p>
+        </div>
+      </div>
+      <div class="layer">
+        <div class="n">5</div>
+        <div>
+          <h5>折射边 <span class="tag">CSS</span></h5>
+          <p>1px 渐变描边，用 <code>mask-composite: exclude</code> 抠出环形：左上 95% 白 → 中部 6% → 右下 80% 白。玻璃的"厚度"全靠这一圈。</p>
+        </div>
+      </div>
+      <div class="layer">
+        <div class="n">6</div>
+        <div>
+          <h5>高光 <span class="tag">CSS</span></h5>
+          <p>左上斜向反光 + 顶部聚光，位于内容层之下（<code>z-index:1</code>），不参与文字对比度计算。</p>
+        </div>
+      </div>
+      <div class="layer">
+        <div class="n">7</div>
+        <div>
+          <h5>投影 <span class="tag">CSS</span></h5>
+          <p>原生 <code>hasShadow = NO</code>。投影必须收在 8.5px 留白内：<code>1px / 4·8px / 9·15px</code> 三层紧实阴影，而不是一颗 50px 的大模糊——后者会被窗口边界裁掉，变成一圈灰晕，等于没有悬浮感。</p>
+        </div>
+      </div>
+    </div>
+
+    <h3>三档浓度</h3>
+    <p>三档是<b>原生 alpha + 薄纱透明度 + 颗粒浓度</b>三者联动，不是只调一个 CSS 变量。只改 CSS 时三档几乎看不出差别，因为通透度主要由原生材质决定。</p>
+    <table>
+      <thead>
+        <tr><th>档位</th><th>原生 alpha（日/夜）</th><th>--glass-1 / -2（日）</th><th>适用</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><b>通透 thin</b></td><td class="mono">.06 / .10</td><td class="mono">.4% / .2%</td><td>干净壁纸，最像真玻璃</td></tr>
+        <tr><td><b>标准 standard</b></td><td class="mono">.12 / .28</td><td class="mono">5.5% / 1.5%</td><td>默认，磨砂与通透兼顾</td></tr>
+        <tr><td><b>厚重 thick</b></td><td class="mono">.34 / .55</td><td class="mono">42% / 30%</td><td>花壁纸 / 文字优先</td></tr>
+      </tbody>
+    </table>
+    <p class="mono" style="font-size:12px; opacity:.75">原生 alpha 只在几十分之一这个量级上变化，观感差别却很明显 —— 因为底下垫的是真壁纸，不是画上去的背景。</p>
+
+    <div class="shot-row">
+      <figure>
+        <img src="../docs/glass-thin.png" alt="通透档玻璃">
+        <figcaption>通透：壁纸的蓝紫几乎原样透出，卡片只剩一点磨砂和一圈折射边。</figcaption>
+      </figure>
+      <figure>
+        <img src="../docs/glass-standard.png" alt="标准档玻璃">
+        <figcaption>标准：薄纱压住背景噪声，金额仍是纯白 —— 可读性靠文字阴影，不靠加深底色。</figcaption>
+      </figure>
+    </div>
+
+    <figure>
+      <img src="../docs/widget-medium.png" alt="真实桌面上的中号卡片">
+      <figcaption>真实桌面（左白窗、右蓝壁纸）：分界线在卡片内部是渐变的——这是"真透"而不是"涂了一层白"最直接的证据。</figcaption>
+    </figure>
+
+    <figure>
+      <img src="../docs/widget-dark-large.png" alt="夜间大号">
+      <figcaption>夜间 + 大号：材质切到 <code>.hudWindow</code>，轨道换成白色 17%（墨色槽在深色卡上会消失）。</figcaption>
+    </figure>
+  </section>
+
+  <!-- ================= 01b 本轮优化 ================= -->
+  <section id="revision">
+    <h2>01b · 本轮视觉优化（v1.1）</h2>
+    <p>按"截图 → 定位三个最影响观感的问题 → 逐项改 → 复测"的顺序做，不凭感觉调。</p>
+    <p>下表记的是<b>当时</b>的实测与改法；之后的返工又把原生 alpha 与窗口留白继续压小（通透 .06 / 留白 8.5px，见 01 节），表里的比例数字只作过程记录，不是当前参数。</p>
+
+    <table>
+      <thead>
+        <tr><th style="width:16%">问题</th><th style="width:30%">实测证据</th><th style="width:32%">改法</th><th style="width:22%">结果</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>P1 通透</b><br>卡片发灰、像奶白塑料片</td>
+          <td>白底/黑底双测：卡片确实在透（黑底被提到 90/255），但透射被压在 ~34%，且<b>同一张卡内各点透射率 20%~58%</b>——不均匀才是"脏"的主因。薄纱用的是主题色相，冷色主题会把卡片染成灰蓝。</td>
+          <td>薄纱改为<b>固定暖色相 84°</b> 的奶油白；原生 <code>alphaValue</code> 从 1.0 降档（标准 .80）；CSS <code>backdrop-filter</code> 做二次模糊收掉低 alpha 漏出的锐边。</td>
+          <td>透射 ≈37%，色偏消失，卡片在真实桌面上能读出壁纸颜色。</td>
+        </tr>
+        <tr>
+          <td><b>P2 边光与投影</b><br>没有玻璃厚度、也不悬浮</td>
+          <td>外层阴影是 <code>0 22px 50px</code>，而窗口只给了 20px 留白——模糊半径远超边界，<b>被裁成一圈灰雾</b>，投影等于不存在。</td>
+          <td>拆成 <code>1px / 4·8px / 9·15px</code> 三层紧实阴影；顶部加 <code>inset 0 1.4px</code> 受光；<code>.rim</code> 渐变边改成"左上 95% → 中部 6% → 右下 80%"的有向受光。</td>
+          <td>卡片下缘出现贴地阴影、上缘出现亮线，悬浮与厚度同时成立。</td>
+        </tr>
+        <tr>
+          <td><b>P3 层次</b><br>金额不突出、装饰抢戏</td>
+          <td>环轨道是一条浅紫实心带，视觉重量接近金额；吉祥物用近白填充，在玻璃上几乎消失；倒计时胶囊是"涂色药丸"，比正文还重。</td>
+          <td>轨道改<b>墨色淡槽</b>（56% / 13.5%，夜 17% 白），线宽 8→7；吉祥物改暖奶油实体 + 投影、腮红固定暖粉；胶囊改半透明小玻璃片。</td>
+          <td>视线上"金额 → 环 → 胶囊 → 文案"四级下行，装饰退成背景。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="note">
+      <b>顺带修掉的两个真 Bug</b><br>
+      ① 夜间主题下倒计时胶囊是写死的浅色底，而夜间正文是近白色——白字压白底，读不出来。现已拆成 <code>--chip / --chip-edge</code> 双主题令牌。<br>
+      ② 大号文案"本月工资已完成 x%"会算出 <b>NaN%</b>：<code>money()</code> 为避开与 <code>monthEarned()</code> 的互相递归不返回 month 字段，而文案模板直接用了它。已在取文案处补齐。
+    </div>
+  </section>
+
+  <!-- ================= 02 色彩 ================= -->
+  <section id="color">
+    <h2>02 · 色彩</h2>
+
+    <h3>单色相模型</h3>
+    <p>
+      整个产品只有<strong>一个色相变量 <code>--h</code></strong>。所有颜色（墨色、描边、强调色、薄纱染色）都由它派生，
+      明度与彩度写死。用户换色时只改 <code>--h</code>，因此不会出现"换成黄色以后字看不见"的情况。
+    </p>
+
+    <div class="pull">
+      换色 = <code>document.documentElement.style.setProperty("--h", 168)</code>。就这一行。
+    </div>
+
+    <h3>色值（以 <code>--h: 255</code> 雾蓝为例）</h3>
+    <table>
+      <thead><tr><th>Token</th><th>日间</th><th>夜间</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><td><b>--ink</b></td><td class="mono">#2E3641 · 33%</td><td class="mono">#EDF2F9 · 96%</td><td>主数字、标题</td></tr>
+        <tr><td><b>--ink-2</b></td><td class="mono">#5C646F · 50%</td><td class="mono">#BBC2CA · 81%</td><td>说明文字、计量单位</td></tr>
+        <tr><td><b>--ink-3</b></td><td class="mono">#989FA8 · 70%</td><td class="mono">#969CA4 · 69%</td><td>仅图形 / 分隔线，<b>不用于文字</b></td></tr>
+        <tr><td><b>--accent</b></td><td class="mono">#4087DE · 62%</td><td class="mono">#76B4FF · 76%</td><td>进度弧、进度条</td></tr>
+        <tr><td><b>--accent-ink</b></td><td class="mono">#1157A4 · 46%</td><td class="mono">#99CEFF · 84%</td><td>货币符号、倒计时数字、主按钮底</td></tr>
+        <tr><td><b>--accent-soft</b></td><td class="mono">94.5% / 72%</td><td class="mono">34% / 62%</td><td>环底、胶囊底、进度条底</td></tr>
+      </tbody>
+    </table>
+
+    <h3>预设主题色</h3>
+    <p>七个预设覆盖常见情绪，另有取色器接受任意颜色——但只取色相。</p>
+    <div class="swatches">
+      <div class="swatch"><i style="background:oklch(62% .150 255)"></i><span>255 雾蓝</span></div>
+      <div class="swatch"><i style="background:oklch(62% .150 8)"></i><span>8 樱粉</span></div>
+      <div class="swatch"><i style="background:oklch(62% .150 168)"></i><span>168 薄荷</span></div>
+      <div class="swatch"><i style="background:oklch(62% .150 75)"></i><span>75 柠檬</span></div>
+      <div class="swatch"><i style="background:oklch(62% .150 295)"></i><span>295 葡萄</span></div>
+      <div class="swatch"><i style="background:oklch(62% .150 38)"></i><span>38 蜜桃</span></div>
+      <div class="swatch"><i style="background:oklch(62% .150 212)"></i><span>212 天青</span></div>
+    </div>
+
+    <h3>为什么不给用户自由拖饱和度</h3>
+    <p>
+      因为对比度是算出来的，不是看出来的。<code>--ink-2</code> 在 50% 明度时对玻璃底为 4.88:1，
+      刚好越过 AA；把它调浅一点，整块卡片的次级文字立刻掉到 4.4 以下。放开这个滑块等于把无障碍交给运气。
+    </p>
+  </section>
+
+  <!-- ================= 03 字体 ================= -->
+  <section id="type">
+    <h2>03 · 字体</h2>
+
+    <table>
+      <thead><tr><th>角色</th><th>字族</th><th>用法</th></tr></thead>
+      <tbody>
+        <tr><td><b>数字 / 标题</b></td><td class="mono">ui-rounded → SF Pro Rounded → Yuanti SC</td><td>金额、百分比、倒计时。圆体让"钱"这个数字不带压迫感。</td></tr>
+        <tr><td><b>正文</b></td><td class="mono">Yuanti SC → PingFang SC</td><td>状态、说明、副标题。</td></tr>
+      </tbody>
+    </table>
+
+    <h4>数字排印规则</h4>
+    <ul>
+      <li>所有金额与时间使用 <code>font-variant-numeric: tabular-nums</code>，跳动时不会左右抖动。</li>
+      <li>金额拆三段：<code>¥</code>（0.5em，accent-ink）· 整数（1em，800 字重）· 小数（0.56em，ink-2）。小数点永远比整数浅一级。</li>
+      <li>字距：大字号收 <code>-0.03em</code>，小字号放 <code>+0.02em</code>。</li>
+    </ul>
+
+    <h4>字号阶（px）</h4>
+    <table>
+      <thead><tr><th>层级</th><th>小号 163</th><th>中号 343×163</th><th>大号 343×343</th></tr></thead>
+      <tbody>
+        <tr><td>主金额</td><td>28</td><td>29</td><td>37</td></tr>
+        <tr><td>进度百分比</td><td>—（隐藏环）</td><td>20</td><td>25</td></tr>
+        <tr><td>本月行</td><td>12</td><td>13</td><td>15</td></tr>
+        <tr><td>倒计时</td><td>10.5</td><td>10.5</td><td>15</td></tr>
+        <tr><td>说明 / 状态</td><td>11</td><td>12</td><td>12</td></tr>
+        <tr><td>时钟</td><td>10.5</td><td>11.5</td><td>11.5</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ================= 04 尺寸 ================= -->
+  <section id="size">
+    <h2>04 · 尺寸与间距</h2>
+
+    <h3>三个固定尺寸，不做自由缩放</h3>
+    <p>
+      卡片是<strong>重新排版</strong>而不是等比缩放：小号隐藏进度环与所有副行，中号横排（环 + 信息列），大号纵排并补上时薪与奶茶换算。
+      自由拉伸会破坏这套规则，因此只提供三档。
+    </p>
+
+    <table>
+      <thead><tr><th>尺寸</th><th>卡片</th><th>窗口（含阴影边距）</th><th>圆角</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td><b>小 S</b></td><td class="mono">163 × 163</td><td class="mono">180 × 180</td><td class="mono">24px</td><td>状态 + 金额 + 倒计时</td></tr>
+        <tr><td><b>中 M</b></td><td class="mono">343 × 163</td><td class="mono">360 × 180</td><td class="mono">28px</td><td>金额 + 本月行 + 倒计时（右栏）+ 喝水</td></tr>
+        <tr><td><b>大 L</b></td><td class="mono">343 × 343</td><td class="mono">360 × 360</td><td class="mono">28px</td><td>以上全部 + 时薪换算 + 语录</td></tr>
+      </tbody>
+    </table>
+
+    <div class="note">
+      <b>kPad = 8.5px</b>：窗口每条边比卡片多 8.5px 透明区，这是系统桌面小组件自己的内缩量
+      （窗口 360 × 180 里画出来的卡片正好 343 × 163）。照抄这个数，本组件才能和旁边那些系统小组件
+      落在同一套网格上。原生磨砂层的圆角遮罩必须按同一内缩量 + 同一圆角生成，否则磨砂会溢出或被裁。
+    </div>
+
+    <h3>内间距</h3>
+    <ul>
+      <li>顶栏：<code>11px 14px 0</code>（大号 <code>14px 16px 0</code>）</li>
+      <li>主体区：<code>6px 15px 14px</code>，环与信息列间距 14px</li>
+      <li>间距基数 4px，实际取值 4 / 8 / 12 / 14 / 20</li>
+    </ul>
+  </section>
+
+  <!-- ================= 05 组件解剖 ================= -->
+  <section id="anatomy">
+    <h2>05 · 组件解剖</h2>
+
+    <div class="anat">
+      <div class="card">
+        <h4>进度环 .dial</h4>
+        <ol>
+          <li>底轨：<code>--accent-soft</code>，9px 圆头描边</li>
+          <li>进度弧：<code>--accent</code> 纯色，无渐变，<code>stroke-dashoffset</code> 过渡 820ms</li>
+          <li>中心：百分比 800 字重 + 「本月进度」标签 9px / 0.08em 字距</li>
+        </ol>
+        <p style="font-size:12px; margin-top:8px;">小号隐藏；中号 112px；大号 138px。</p>
+      </div>
+
+      <div class="card">
+        <h4>金额 .amount</h4>
+        <ol>
+          <li>点击循环：今日 → 本月 → 今年（只换数字，不换布局）</li>
+          <li>递增时触发 340ms 弹跳（上移 2.5px 回落）</li>
+          <li>小数部分在弹跳瞬间变为主色，作为"钱又多了"的提示</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <h4>本月行 .monthline</h4>
+        <ol>
+          <li>「本月」标签 + 已入账金额（800 字重）+ 分隔点 + 本月累积工时</li>
+          <li>总额降级为 ink-2 且用斜杠分隔，避免与主数字争夺注意力</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <h4>倒计时胶囊 .countdown</h4>
+        <ol>
+          <li>99px 全圆角，底色 <code>--accent-soft</code></li>
+          <li>左侧 11px 自绘时钟图标（圆圈 + 指针），非 emoji</li>
+          <li>三种文案：距下班 / 已下班·距发薪 N 天 / 距开工</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <h4>表情 .mascot</h4>
+        <ol>
+          <li>26px 内联 SVG，无外部图片依赖</li>
+          <li>四套眼睛：睁眼 / 眯眼笑 / 星星眼 / 半睁</li>
+          <li>嘴巴路径随状态改变，6.5s 周期眨眼</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <h4>进度条 .bar</h4>
+        <ol>
+          <li>7px 胶囊，底 <code>--accent-soft</code>，填充 <code>--accent</code></li>
+          <li>仅大号出现，与进度环同源同值</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 06 状态 ================= -->
+  <section id="states">
+    <h2>06 · 状态矩阵</h2>
+
+    <table>
+      <thead>
+        <tr><th>状态</th><th>判定</th><th>状态文案</th><th>表情</th><th>倒计时</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>working</b></td><td>上班时间内</td>
+          <td>打工中 · 钱在悄悄长</td><td>睁眼 + 微笑</td><td>距下班 8h 32m</td>
+        </tr>
+        <tr>
+          <td><b>lunch</b></td><td>午休区间</td>
+          <td>午休中 · 饭也在算钱</td><td>眯眼笑</td><td>距下班 5h 10m</td>
+        </tr>
+        <tr>
+          <td><b>done</b></td><td>已过下班时间</td>
+          <td>已下班 · 今天到此为止</td><td>星星眼</td><td>距发薪 6 天</td>
+        </tr>
+        <tr>
+          <td><b>before</b></td><td>未到上班时间</td>
+          <td>还没开工 · 先喝口水</td><td>半睁</td><td>距开工 42m</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>
+      金额在所有状态下都照常计算（午休不计薪，因此午休期间数字静止）。周末与非工作日按 <code>workDays</code> 折算，不做特殊状态。
+    </p>
+  </section>
+
+  <!-- ================= 07 动效 ================= -->
+  <section id="motion">
+    <h2>07 · 动效</h2>
+
+    <table>
+      <thead><tr><th>Token</th><th>值</th><th>用在哪</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">--dur-fast</td><td class="mono">160ms</td><td>按钮、色卡、胶囊的即时反馈</td></tr>
+        <tr><td class="mono">--dur-base</td><td class="mono">340ms</td><td>金额弹跳</td></tr>
+        <tr><td class="mono">--dur-slow</td><td class="mono">820ms</td><td>进度环 / 进度条数值变化</td></tr>
+        <tr><td class="mono">--ease-spring</td><td class="mono">cubic-bezier(.34,1.56,.64,1)</td><td>入场、弹跳——带过冲的弹性</td></tr>
+        <tr><td class="mono">--ease-out-quart</td><td class="mono">cubic-bezier(.25,1,.5,1)</td><td>进度过渡——快出慢收</td></tr>
+      </tbody>
+    </table>
+
+    <h4>三条规则</h4>
+    <ul>
+      <li><strong>入场只有一次</strong>：<code>popIn</code>（缩放 0.93 → 1 + 上移 8px）只播一次，之后数字变化不再整体动。</li>
+      <li><strong>只动数字，不动容器</strong>：持续动画只允许发生在金额与进度弧上，卡片本体永远静止。</li>
+      <li><strong>不打断阅读</strong>：任何动效时长不超过 820ms，且不改变布局尺寸（用 transform 而非 width/height）。</li>
+    </ul>
+  </section>
+
+  <!-- ================= 08 无障碍 ================= -->
+  <section id="a11y">
+    <h2>08 · 无障碍</h2>
+
+    <p>
+      下面这张表<strong>不是估算，是实测</strong>：先把 OKLCH 令牌换算成 sRGB，再对真实截图的玻璃表面取 60×30px 区域平均色
+      （标准档实测 <code>#E6E8EC</code>），按 WCAG 相对亮度公式计算。
+    </p>
+
+    <table>
+      <thead><tr><th>前景</th><th>色值</th><th>对玻璃底</th><th>结果</th></tr></thead>
+      <tbody>
+        <tr><td><b>--ink</b></td><td class="mono">#2E3641</td><td class="mono">9.95 : 1</td><td class="pass">AA / AAA 通过</td></tr>
+        <tr><td><b>--ink-2</b></td><td class="mono">#5C646F</td><td class="mono">4.88 : 1</td><td class="pass">AA 通过</td></tr>
+        <tr><td><b>--accent-ink</b></td><td class="mono">#1157A4</td><td class="mono">5.86 : 1</td><td class="pass">AA 通过</td></tr>
+        <tr><td><b>白字 on accent-ink</b></td><td class="mono">#FFFFFF</td><td class="mono">7.18 : 1</td><td class="pass">AA 通过</td></tr>
+        <tr><td><b>--accent（纯图形）</b></td><td class="mono">#4087DE</td><td class="mono">3.23 : 1</td><td class="pass">≥3:1 图形要求</td></tr>
+        <tr><td><b>--ink-3</b></td><td class="mono">#989FA8</td><td class="mono">2.36 : 1</td><td class="warn">不达标 → 已禁用于文字</td></tr>
+      </tbody>
+    </table>
+
+    <div class="note">
+      <b>玻璃带来的固有限制，必须说清楚：</b>对比度取决于壁纸。上表测的是浅色壁纸下的表面色；
+      换成纯黑壁纸，「标准」档的 --ink-2 会掉到 4.5 以下。<br>
+      这不是 bug，是玻璃的物理代价。产品层面的应对是<b>把浓度控制交给用户</b>：壁纸深或花的时候切「厚重」，
+      实测可把表面压到接近不透明，对比度回到上表水平。<b>因此「厚重」档是默认的无障碍兜底，不是装饰选项。</b>
+    </div>
+
+    <h4>其它</h4>
+    <ul>
+      <li>所有信息性文字（金额、时间、状态）最小 10.5px，且字重不低于 600。</li>
+      <li>控制台全部控件有 <code>aria-pressed</code> / <code>aria-checked</code> / <code>role="switch"</code>，键盘可切换尺寸与浓度。</li>
+      <li>颜色不是唯一信息载体：进度同时用弧长与百分比数字表达；上班/下班状态同时用文案与表情表达。</li>
+    </ul>
+  </section>
+
+  <!-- ================= 09 契约 ================= -->
+  <section id="contract">
+    <h2>09 · 主题契约</h2>
+
+    <h3>状态结构</h3>
+    <p>单一 JSON 存在 <code>~/Library/Application Support/NiuMaWidget/state.json</code>，原生在页面加载前注入为 <code>window.__NIUMA_STATE__</code>。</p>
+    <pre style="background:#0F1720; color:#D6E2F0; padding:18px 20px; border-radius:14px; overflow:auto; font-family:var(--font-mono); font-size:12.5px; line-height:1.65; margin:14px 0;">{
+  "hourly": 80,           // 唯一的计价基准，日薪/本月都由它推
+  "start": "09:00", "end": "18:00",
+  "lunchEnabled": true, "lunchStart": "12:30", "lunchEnd": "13:30",
+  "payday": 15,           // 发薪日
+  "offDays": [0, 4, 6],   // 每周不上班的日子 0=周日
+  "milkTea": 18,          // 奶茶换算单价
+  "hue": 255,             // ← 唯一的颜色变量
+  "theme": "light",       // light | dark
+  "glass": "standard",    // thin | standard | thick
+  "water": { "date": "2026-11-4", "cups": 3 },
+  "waterLog": { "2026-11-4": 3 },   // 每天一条，控制台画近 14 天
+  "ui": { "cardSize": "medium", "x": 194, "y": 728, "locked": false }   // 由原生维护
+}</pre>
+
+    <h3>JS ↔ 原生 消息</h3>
+    <table>
+      <thead><tr><th>type</th><th>方向</th><th>payload</th><th>作用</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">save</td><td>页面 → 原生</td><td><code>{data}</code></td><td>写盘，并把配置回推给小组件立即生效</td></tr>
+        <tr><td class="mono">resize</td><td>控制台 → 原生</td><td><code>{size:"small|medium|large"}</code></td><td>切换尺寸并持久化</td></tr>
+        <tr><td class="mono">dragBegin / dragEnd</td><td>页面 → 原生</td><td>—</td><td>开始/结束拖拽，结束时落盘位置</td></tr>
+        <tr><td class="mono">openDashboard</td><td>页面 → 原生</td><td>—</td><td>打开控制台窗口</td></tr>
+        <tr><td class="mono">themeChanged</td><td>控制台 → 原生</td><td>—</td><td>通知小组件重绘</td></tr>
+        <tr><td class="mono">quit</td><td>页面 → 原生</td><td>—</td><td>退出</td></tr>
+      </tbody>
+    </table>
+
+    <div class="note">
+      <b>一个容易踩的坑：</b>控制台提交 <code>save</code> 时只带配置项，不带 <code>ui</code>。
+      原生必须在写盘前把旧的 <code>ui</code> 合并回去，否则每次「保存」都会把窗口位置重置回默认角落。
+    </div>
+  </section>
+
+  <section>
+    <h2>附 · 工程结构</h2>
+    <pre style="background:#0F1720; color:#D6E2F0; padding:18px 20px; border-radius:14px; overflow:auto; font-family:var(--font-mono); font-size:12.5px; line-height:1.8; margin:14px 0;">niuma-widget/
+├── native/
+│   ├── main.m        # NSPanel + NSVisualEffectView + WKWebView + 消息路由
+│   ├── Info.plist    # LSUIElement=true，无 Dock 图标
+│   └── build.sh      # clang 直编，无需 Xcode
+├── app/
+│   ├── widget.html   # 小组件本体（三尺寸共用一份）
+│   └── dashboard.html# 控制台（含三档实时预览）
+├── design-system/    # 本文件
+└── dist/牛马鼓励器.app</pre>
+    <p>构建：<code>./native/build.sh</code> → 产物 <code>dist/牛马鼓励器.app</code>（约 236 KB，ad-hoc 签名）。</p>
+  </section>
+
+  <footer style="margin-top:60px; padding-top:24px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-3);">
+    牛马鼓励器 · 设计规范 v1.0 · 2026-11-04 ·
+    <a href="../app/widget.html">小组件</a> ·
+    <a href="../app/dashboard.html">控制台</a>
+  </footer>
+
+</div>
+</body>
+</html>
