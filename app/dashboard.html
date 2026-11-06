@@ -2,6 +2,7 @@
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>牛马鼓励器 · 控制台</title>
 <style>
 /* ============================================================
@@ -46,7 +47,7 @@ body{
 ::-webkit-scrollbar{width:10px;}
 ::-webkit-scrollbar-thumb{background:var(--line); border-radius:99px; border:3px solid transparent; background-clip:content-box;}
 
-.wrap{max-width:1060px; margin:0 auto; padding:34px 36px 60px;}
+.wrap{max-width:1320px; margin:0 auto; padding:clamp(20px, 3vw, 34px) clamp(16px, 3vw, 36px) 48px;}
 
 /* ---------- 头部 ---------- */
 .head{display:flex; align-items:center; gap:14px; margin-bottom:26px;}
@@ -56,7 +57,7 @@ body{
   display:grid; place-items:center; box-shadow:var(--shadow);
   transition:background var(--dur-base) var(--ease-out-quart);
 }
-.badge svg{width:30px; height:30px;}
+.badge svg{width:34px; height:34px;}
 .h-title{font-size:19px; font-weight:600; letter-spacing:.01em;}
 .h-sub{font-size:12px; color:var(--ink-2); margin-top:3px;}
 .head .grow{flex:1;}
@@ -100,17 +101,13 @@ body{
 
 /* ---------- 预览 ---------- */
 .previews{
-  display:flex; gap:18px 22px; align-items:flex-start; flex-wrap:wrap;
+  display:flex; gap:18px 22px; align-items:flex-start; justify-content:center; flex-wrap:wrap;
   padding:20px; margin-bottom:22px; border-radius:18px;
-  background:
-    radial-gradient(ellipse at 96% 0%, #f0c6b7 0%, transparent 58%),
-    radial-gradient(ellipse at 8% 95%, #829ed1 0%, transparent 58%),
-    radial-gradient(ellipse at 44% 18%, #c6b0d5 0%, transparent 62%),
-    linear-gradient(135deg, #8d92c2, #ad92bb 65%, #ceabbf);
+  background:#29292e;
 }
-.previews .pv-name{color:var(--ink); background:#ffffff45;}
+.previews .pv-name{color:#f0f0f3; background:#ffffff10;}
 .previews .pv:hover .pv-name, .previews .pv.on .pv-name{
-  color:var(--accent-ink); border-color:#ffffffb3; background:#ffffff8c;
+  color:#fff; border-color:#b8b8c1; background:#45454c;
 }
 .pv{display:flex; flex-direction:column; gap:9px; align-items:center; cursor:pointer;}
 .pv:focus-visible, #previewState button:focus-visible{
@@ -159,7 +156,8 @@ body{
 .sw-note b{color:var(--ink-2); font-weight:600;}
 
 /* ---------- 两列 ---------- */
-.cols{display:grid; grid-template-columns:1fr 320px; gap:16px; align-items:start;}
+.cols{display:grid; grid-template-columns:minmax(0, 1fr) minmax(280px, .62fr); gap:16px; align-items:start;}
+.cols > *, .texts > *, .panel{min-width:0;}
 
 /* ---------- 表单 ---------- */
 .form{display:grid; grid-template-columns:1fr 1fr; gap:13px 15px;}
@@ -225,7 +223,7 @@ body{
   border-color:var(--accent-2); color:var(--accent-ink);
 }
 
-.actions{display:flex; align-items:center; gap:12px; margin-top:18px;}
+.actions{display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:18px;}
 .btn{
   border:0; cursor:pointer; font-family:var(--font-sans); font-weight:600; font-size:13px;
   padding:11px 22px; border-radius:13px; transition:all var(--dur-fast);
@@ -281,7 +279,7 @@ body{
 .wlog-bars{position:relative; display:flex; align-items:flex-end; gap:4px; height:46px;}
 /* 目标线：位置由 JS 按 goal/peak 算，柱子压线与否一眼可比 */
 .wlog-bars::before{
-  content:""; position:absolute; left:0; right:0; bottom:var(--goal-top, 33%);
+  content:none; position:absolute; left:0; right:0; bottom:var(--goal-top, 33%);
   border-top:1px dashed var(--line); pointer-events:none;
 }
 .wb{
@@ -349,12 +347,56 @@ code{
   background:var(--bg-2); padding:1px 5px; border-radius:5px; color:var(--ink-2);
 }
 
-@media (max-width:900px){
-  .cols{grid-template-columns:1fr;}
-  .form{grid-template-columns:1fr;}
-  .texts{grid-template-columns:1fr;}
-  .wrap{padding:24px 18px 44px;}
+/* Preview canvases retain widget geometry; only the presentation scale changes. */
+.pv{flex:1 1 244px; max-width:360px; min-width:0;}
+.pv.tiny{flex-basis:180px; max-width:180px;}
+.pv.tiny .pv-stage,.pv.mid .pv-stage,.pv.big .pv-stage{width:100%; height:auto; aspect-ratio:1;}
+.pv.mid .pv-stage{aspect-ratio:2;}
+.pv iframe{position:absolute; top:0; left:0;}
+.preview-controls > span:last-child{font-size:11px; line-height:1.6; color:var(--ink-2);}
+.pay-head,.p-head{flex-wrap:wrap;}
+.h-sub,.hint,.size-hint{line-height:1.6; overflow-wrap:anywhere;}
+.stats{display:grid; grid-template-columns:repeat(2,minmax(0,1fr));}
+.stat .v{flex-wrap:wrap; overflow-wrap:anywhere;}
+button:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
+@media (max-width:960px){
+  .cols{grid-template-columns:minmax(0,1fr);}
+  .cols > div:last-child{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; align-items:start;}
+  .cols > div:last-child > .panel{margin-top:0;}
+  .stats{grid-template-columns:minmax(0,1fr);}
 }
+@media (max-width:680px){
+  .cols > div:last-child{grid-template-columns:minmax(0,1fr);}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .texts{grid-template-columns:minmax(0,1fr);}
+  .panel{padding:18px 16px; border-radius:18px;}
+  .previews{padding:16px; gap:18px 12px;}
+  .preview-controls .seg{border-radius:16px;}
+}
+@media (max-width:480px){
+  .form{grid-template-columns:minmax(0,1fr);}
+  .head{gap:10px; margin-bottom:18px;}
+  .head .grow{display:none;}
+  .h-title{font-size:17px;}
+  .h-sub{font-size:11px;}
+  .actions .btn{flex:1 1 auto; padding:11px 14px;}
+  .seg button{padding:6px 10px;}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition:none !important;}
+}
+
+[hidden]{display:none !important;}
+.work-calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin:12px 0;}
+.work-calendar span{text-align:center;font-size:11px;color:var(--ink-2);}
+.work-calendar button{padding:10px 2px;border:1px solid var(--line);border-radius:9px;background:var(--bg-2);color:var(--ink);font:inherit;font-size:11px;cursor:pointer;}
+.work-calendar button[data-override]{border-color:var(--accent-2);}
+.work-calendar button[aria-pressed="true"]{background:var(--accent-ink);color:white;}
+#waterPanel .wcount-row{max-width:480px;margin:18px auto;}
+#waterPanel .wbtn{width:52px;height:52px;font-size:26px;}
+#waterPanel .wcount b{font-size:40px;}
+#waterPanel .wlog-bars{height:68px;}
+#waterPanel .form{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));}
 </style>
 </head>
 <body>
@@ -362,13 +404,15 @@ code{
 
   <div class="head">
     <div class="badge">
-      <svg viewBox="0 0 48 48">
-        <circle cx="24" cy="24" r="21" fill="var(--accent-soft)" stroke="var(--accent-2)" stroke-width="1.4"/>
-        <ellipse cx="12.5" cy="27" rx="3.4" ry="2.1" fill="var(--accent-2)" opacity=".55"/>
-        <ellipse cx="35.5" cy="27" rx="3.4" ry="2.1" fill="var(--accent-2)" opacity=".55"/>
-        <circle cx="17" cy="21.5" r="2.7" fill="var(--ink)"/>
-        <circle cx="31" cy="21.5" r="2.7" fill="var(--ink)"/>
-        <path d="M20 30.5 Q24 34 28 30.5" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round"/>
+      <svg viewBox="0 0 48 48" role="img" aria-label="牛马鼓励器小牛标识">
+        <g stroke="var(--accent-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 16C9 16 7 11 9 6c2 4 5 5 9 5M33 16c6 0 8-5 6-10-2 4-5 5-9 5" fill="var(--card)"/>
+          <path d="M13 19C7 16 3 18 4 23c2 3 6 4 10 2m20-6c6-3 10-1 9 4-2 3-6 4-10 2" fill="var(--accent-soft)"/>
+          <path d="M12 23c0-9 4-13 12-13s12 4 12 13v9c0 7-5 10-12 10s-12-3-12-10Z" fill="var(--accent-soft)"/>
+          <path d="M18 11c0 5 3 8 7 8 2-3 3-6 2-9" fill="var(--accent-2)" stroke="none"/>
+          <rect x="13" y="28" width="22" height="13" rx="6.5" fill="var(--card)"/>
+          <path d="M18 23v2m12-2v2M20 33v1m8-1v1"/>
+        </g>
       </svg>
     </div>
     <div>
@@ -440,7 +484,7 @@ code{
         </div>
         <div class="p-sub">小表情</div>
         <div class="input face-input">
-          <input id="face" type="text" maxlength="4" placeholder="留空 = 手绘牛马脸" aria-label="自定义小表情">
+          <input id="face" type="text" maxlength="64" placeholder="输入或粘贴一个 emoji，留空使用手绘脸" aria-label="自定义小表情">
         </div>
         <div class="face-picks" id="facePicks" role="group" aria-label="常用小表情">
           <button type="button" data-face="" class="wide" aria-pressed="true" title="回到手绘的牛马脸">手绘</button>
@@ -454,6 +498,7 @@ code{
           <button type="button" data-face="🐱" aria-pressed="false" title="猫">🐱</button>
           <button type="button" data-face="🤖" aria-pressed="false" title="机器人">🤖</button>
         </div>
+        <button class="btn ghost" id="customFace" type="button" style="margin-top:10px;">自定义 emoji…</button>
         <div class="sw-note">
           留空就是那张手绘的脸 —— 它会随状态自己换眼睛（上班圆眼、摸鱼弯眼、下班星星眼）。
           想换就点上面的表情或自己填一个，卡片左上角立刻变成它。
@@ -461,9 +506,104 @@ code{
     </div>
   </div>
 
+  <details class="panel" id="phraseManager" style="margin-bottom:16px;">
+    <summary style="cursor:pointer;font-weight:600;">鼓励语管理 · 选择与随机轮播</summary>
+    <label style="display:block;margin:16px 0;">轮播间隔 <select id="phraseInterval"><option value="15">15 秒</option><option value="30">30 秒</option><option value="60">1 分钟</option><option value="120">2 分钟</option></select></label>
+    <div class="texts" id="phraseGroups"></div>
+    <p class="sw-note">勾选后自动保存，按当前状态随机轮播。可添加多条自定义内容，取消全部勾选则隐藏该状态的鼓励语。</p>
+  </details>
+      <div class="panel" id="waterPanel" style="margin-bottom:16px;">
+        <div class="p-title">喝水记录</div>
+        <div class="form" style="margin-bottom:16px;">
+          <div class="field"><label for="todayWaterCount">今日杯数</label><div class="input"><input id="todayWaterCount" type="number" min="0" max="99" step="1"></div></div>
+          <div class="field"><label for="todayWaterGoal">今日目标（杯）</label><div class="input"><input id="todayWaterGoal" type="number" min="1" max="12" step="1"></div></div>
+          <div class="field"><label for="todayWaterMl">今日每杯（ml）</label><div class="input"><input id="todayWaterMl" type="number" min="1" max="5000" step="1"></div></div>
+          <button class="btn primary" id="applyTodayWater">保存今日记录</button>
+        </div>
+        <div class="wcount-row">
+          <button class="wbtn" id="wMinus" aria-label="减一杯">−</button>
+          <div class="wcount"><b id="wCups">0</b><span class="wsep">/</span><span id="wGoalTxt">4</span><span class="wunit">杯</span></div>
+          <button class="wbtn" id="wPlus" aria-label="加一杯">＋</button>
+        </div>
+        <details style="margin-top:14px;">
+          <summary style="font-size:12px;cursor:pointer;">补记 / 修改某天喝水</summary>
+          <div class="form" style="margin-top:12px;">
+            <div class="field" style="grid-column:1/-1;"><label for="waterDate">日期</label><div class="input"><input id="waterDate" type="date"></div></div>
+            <div class="field"><label for="waterCount">杯数</label><div class="input"><input id="waterCount" type="number" min="0" max="99" step="1"></div></div>
+            <div class="field"><label for="historyGoal">当天目标（杯）</label><div class="input"><input id="historyGoal" type="number" min="1" max="12" step="1"></div></div>
+            <div class="field"><label for="historyMl">当天每杯（ml）</label><div class="input"><input id="historyMl" type="number" min="1" max="5000" step="1"></div></div>
+          </div>
+          <button class="btn ghost" id="saveWaterDay" style="margin-top:12px;">保存这一天</button>
+          <p class="hint" style="font-size:10px;margin-top:8px;">仅保留最近 180 条记录。旧记录未保存目标和杯容量，补记时请核对。</p>
+          <p id="waterDayStatus" role="status" style="font-size:11px;margin-top:8px;"></p>
+        </details>
+        <div class="wlog" id="wLog">
+          <div class="wlog-bars" id="wLogBars" role="img" aria-label="近 14 天喝水记录"></div>
+          <div class="wlog-days" id="wLogDays" aria-hidden="true"></div>
+          <div class="wlog-empty">还没有记录 · 点上面的 ＋ 记第一杯</div>
+          <div class="wlog-foot">
+            <span id="wLogSum">还没有记录</span>
+            <span id="wLogHit"></span>
+          </div>
+        </div>
+        <div class="form" style="margin-top:15px;">
+          <div class="field">
+            <label for="waterGoal">默认目标（新记录）</label>
+            <div class="input"><input id="waterGoal" type="number" min="1" max="12" step="1" inputmode="numeric"><span>杯</span></div>
+          </div>
+          <div class="field">
+            <label for="cupMl">默认容量（新记录）</label>
+            <div class="input"><input id="cupMl" type="number" min="100" max="1000" step="50" inputmode="numeric"><span>ml</span></div>
+          </div>
+        </div>
+        <div class="sw-note">
+          小组件上的 <b>＋</b> 记一杯、<b>−</b> 撤回一杯。跨天自动归零，但<b>每天的杯数都会记进上面的记录条</b>（留最近 180 天）；
+          目标杯数决定水滴有几颗。
+        </div>
+      </div>
+
   <div class="cols">
     <div class="panel">
-      <div class="p-title">打工参数</div>
+      <div class="p-title">打工参数</div>        <div class="field" style="grid-column:1 / -1;">
+          <label>每周上班日</label>
+          <div class="days" id="days">
+            <button type="button" data-day="1">一</button>
+            <button type="button" data-day="2">二</button>
+            <button type="button" data-day="3">三</button>
+            <button type="button" data-day="4">四</button>
+            <button type="button" data-day="5">五</button>
+            <button type="button" data-day="6">六</button>
+            <button type="button" data-day="0">日</button>
+          </div>
+          <div class="hint">选好后每周自动沿用，节假日和临时改班可在下方单独调整。</div>
+        </div>
+
+      <div class="field" style="margin-bottom:16px;">
+        <label for="effectiveDate">薪资与作息生效日期</label>
+        <div class="input"><input type="date" id="effectiveDate"></div>
+        <div class="hint">修改从所选日期生效。此前收入仍按原配置估算；旧版本历史为推算，并非实际到账。</div>
+      </div>
+      <div class="field" style="margin-bottom:16px;">
+        <label for="exceptionDate">节假日 / 临时调整</label>
+        <div class="input"><input type="date" id="exceptionDate"></div>
+        <div class="seg" id="exceptionMode" role="group" aria-label="日期例外">
+          <button data-mode="" type="button">按每周设置</button><button data-mode="off" type="button">休假</button><button data-mode="work" type="button">补班</button><button data-mode="custom" type="button">自定义时段</button>
+        </div>
+        <div class="hint" id="exceptionHint"></div>
+        <div id="exceptionList" style="font-size:12px;"></div>
+        <div id="customShift" class="form">
+          <div class="field"><label for="shiftStart">当天上班</label><div class="input"><input id="shiftStart" type="time" value="09:00"></div></div>
+          <div class="field"><label for="shiftEnd">当天下班</label><div class="input"><input id="shiftEnd" type="time" value="18:00"></div></div>
+          <label style="font-size:12px;"><input id="shiftLunch" type="checkbox"> 沿用默认午休扣薪</label>
+          <button class="btn primary" id="applyShift">应用时段到所选日期</button>
+        </div>
+      </div>
+      <details id="advancedSchedule" style="margin-bottom:18px;">
+        <summary style="cursor:pointer;font-size:12px;">高级排班 · 月历批量调整</summary>
+        <div style="display:flex;align-items:center;gap:12px;"><button class="btn ghost" id="monthPrev" aria-label="上个月">‹</button><b id="calendarMonth"></b><button class="btn ghost" id="monthNext" aria-label="下个月">›</button><button class="btn ghost" id="calendarClear">清除选择</button></div>
+        <div id="workCalendar" class="work-calendar"></div>
+        <div class="hint" id="calendarSelection" role="status"></div>
+      </details>
       <div class="form">
         <div class="field" style="grid-column:1 / -1;">
           <div class="pay-head">
@@ -511,70 +651,28 @@ code{
           <label for="rewardUnit">计量单位</label>
           <div class="input"><input id="rewardUnit" type="text" maxlength="4" placeholder="杯、顿、件…"></div>
         </div>
-        <div class="field" style="grid-column:1 / -1;">
-          <label>每周上班日</label>
-          <div class="days" id="days">
-            <button type="button" data-day="1">一</button>
-            <button type="button" data-day="2">二</button>
-            <button type="button" data-day="3">三</button>
-            <button type="button" data-day="4">四</button>
-            <button type="button" data-day="5">五</button>
-            <button type="button" data-day="6">六</button>
-            <button type="button" data-day="0">日</button>
-          </div>
-          <div class="hint">点亮 = 上班。默认周四休息；休息日不计薪、也不算工时。</div>
-        </div>
         <div class="switch">
           <span class="lbl">午休不计薪</span>
           <button class="toggle" id="lunchToggle" role="switch" aria-checked="true" aria-label="午休不计薪"></button>
         </div>
       </div>
       <div class="actions">
-        <button class="btn primary" id="save">保存并同步小组件</button>
+        <button class="btn primary" id="save">保存并重试同步</button>
         <button class="btn ghost" id="reset">恢复默认</button>
-        <span class="saved" id="savedTip">已保存</span>
+        <button class="btn ghost" id="undoReset" hidden>撤销恢复默认</button>
+        <button class="btn ghost" id="exportBackup">导出备份</button>
+        <span class="saved" id="savedTip" role="status" aria-live="polite"></span>
       </div>
     </div>
 
     <div>
-      <div class="panel">
-        <div class="p-title">今日喝水</div>
-        <div class="wcount-row">
-          <button class="wbtn" id="wMinus" aria-label="减一杯">−</button>
-          <div class="wcount"><b id="wCups">0</b><span class="wsep">/</span><span id="wGoalTxt">4</span><span class="wunit">杯</span></div>
-          <button class="wbtn" id="wPlus" aria-label="加一杯">＋</button>
-        </div>
-        <div class="wlog" id="wLog">
-          <div class="wlog-bars" id="wLogBars" role="img" aria-label="近 14 天喝水记录"></div>
-          <div class="wlog-days" id="wLogDays" aria-hidden="true"></div>
-          <div class="wlog-empty">还没有记录 · 点上面的 ＋ 记第一杯</div>
-          <div class="wlog-foot">
-            <span id="wLogSum">还没有记录</span>
-            <span id="wLogHit"></span>
-          </div>
-        </div>
-        <div class="form" style="margin-top:15px;">
-          <div class="field">
-            <label for="waterGoal">每天目标</label>
-            <div class="input"><input id="waterGoal" type="number" min="1" max="12" step="1" inputmode="numeric"><span>杯</span></div>
-          </div>
-          <div class="field">
-            <label for="cupMl">每杯容量</label>
-            <div class="input"><input id="cupMl" type="number" min="100" max="1000" step="50" inputmode="numeric"><span>ml</span></div>
-          </div>
-        </div>
-        <div class="sw-note">
-          小组件上的 <b>＋</b> 记一杯、<b>−</b> 撤回一杯。跨天自动归零，但<b>每天的杯数都会记进上面的记录条</b>（留最近 180 天）；
-          目标杯数决定水滴有几颗。
-        </div>
-      </div>
 
       <div class="panel" style="margin-top:16px;">
         <div class="p-title">现在</div>
         <div class="stats">
-          <div class="stat hi"><div class="k">今日已入账</div><div class="v" id="sToday">$0<small>.00</small></div></div>
+          <div class="stat hi"><div class="k">今日预计收入</div><div class="v" id="sToday">$0<small>.00</small></div></div>
           <div class="stat"><div class="k">干满一天</div><div class="v" id="sDay">$0<small>.00</small></div></div>
-          <div class="stat"><div class="k">本月已入账</div><div class="v" id="sMonth">$0<small>.00</small></div></div>
+          <div class="stat"><div class="k">本月预计收入</div><div class="v" id="sMonth">$0<small>.00</small></div></div>
           <div class="stat"><div class="k">今日工时</div><div class="v" id="sWt">0m</div></div>
           <div class="stat"><div class="k">本月累积工时</div><div class="v" id="sWtM">0h</div></div>
           <div class="stat"><div class="k">距发薪 / 距下班</div><div class="v" id="sPay">—</div></div>
@@ -593,7 +691,7 @@ code{
       <div class="p-title">文案</div>
       <button class="btn ghost" id="resetText" style="padding:7px 14px; font-size:12px;">全部恢复默认</button>
     </div>
-    <div class="size-hint">留空就是用默认文案。鼓励语里可以用 <code>&lt;em&gt;…&lt;/em&gt;</code> 把几个字染成主题色。</div>
+    <div class="size-hint">留空使用默认状态文案。鼓励语可在“鼓励语管理”中选择和添加。</div>
     <div class="texts" id="texts">
       <div class="tgroup" data-kind="working">
         <div class="tk">打工中</div>
@@ -605,34 +703,31 @@ code{
           <label>副文案</label>
           <input class="ti" data-field="sub" placeholder="钱在悄悄长">
         </div>
-        <div class="trow">
-          <label>鼓励语</label>
-          <input class="ti tq" data-field="quip" placeholder="留空 = 每次随机一句">
-        </div>
+
       </div>
       <div class="tgroup" data-kind="lunch">
         <div class="tk">摸鱼中</div>
         <div class="trow"><label>主文案</label><input class="ti" data-field="text" placeholder="摸鱼中"></div>
         <div class="trow"><label>副文案</label><input class="ti" data-field="sub" placeholder="饭要认真吃"></div>
-        <div class="trow"><label>鼓励语</label><input class="ti tq" data-field="quip" placeholder="留空 = 每次随机一句"></div>
+
       </div>
       <div class="tgroup" data-kind="done">
         <div class="tk">下班啦</div>
         <div class="trow"><label>主文案</label><input class="ti" data-field="text" placeholder="下班啦"></div>
         <div class="trow"><label>副文案</label><input class="ti" data-field="sub" placeholder="今天到此为止"></div>
-        <div class="trow"><label>鼓励语</label><input class="ti tq" data-field="quip" placeholder="留空 = 每次随机一句"></div>
+
       </div>
       <div class="tgroup" data-kind="before">
         <div class="tk">还没开工</div>
         <div class="trow"><label>主文案</label><input class="ti" data-field="text" placeholder="还没开工"></div>
         <div class="trow"><label>副文案</label><input class="ti" data-field="sub" placeholder="先喝口水"></div>
-        <div class="trow"><label>鼓励语</label><input class="ti tq" data-field="quip" placeholder="留空 = 每次随机一句"></div>
+
       </div>
       <div class="tgroup" data-kind="off">
         <div class="tk">今天休息</div>
         <div class="trow"><label>主文案</label><input class="ti" data-field="text" placeholder="今天休息"></div>
         <div class="trow"><label>副文案</label><input class="ti" data-field="sub" placeholder="电脑合上"></div>
-        <div class="trow"><label>鼓励语</label><input class="ti tq" data-field="quip" placeholder="留空 = 每次随机一句"></div>
+
       </div>
     </div>
   </div>
@@ -640,12 +735,28 @@ code{
 </div>
 
 <script>
+// Size the iframe canvas without changing the widget's internal dimensions.
+const previewResize = new ResizeObserver(entries => {
+  for (const {target, contentRect} of entries) {
+    const frame = target.querySelector("iframe");
+    const width = frame.dataset.size === "small" ? 180 : 360;
+    frame.style.transform = `scale(${contentRect.width / width})`;
+  }
+});
+document.querySelectorAll(".pv-stage").forEach(stage => previewResize.observe(stage));
+
 /* ============================================================
    状态
    ============================================================ */
 const PAY_UNITS = ["hour", "day", "month"];
 /* 小表情按"字"截断（不是按 UTF-16 码元），最多 4 个字 */
-const clampFace = v => Array.from(String(v == null ? "" : v).trim()).slice(0, 4).join("");
+const clampFace = value => {
+  const text = String(value ?? "").trim();
+  if (typeof Intl.Segmenter === "function") {
+    return Array.from(new Intl.Segmenter(undefined, {granularity:"grapheme"}).segment(text), x => x.segment).slice(0,1).join("");
+  }
+  return Array.from(text).slice(0,4).join("");
+};
 const DEFAULTS = {
   /* 薪资可以从时薪 / 日薪 / 月薪任选一个填，但换算到最后仍然只有一个 hourly：
      payUnit + payInput 只是"输入框里那串数字"，pay() 只认 hourly，不存在第二套口径 */
@@ -693,7 +804,7 @@ const $ = id => document.getElementById(id);
    计算
    ============================================================ */
 const toMin = h => { const [a,b] = h.split(":").map(Number); return a*60+b; };
-const isOff = d => (Array.isArray(state.offDays) ? state.offDays.map(Number) : []).includes(d.getDay());
+const isOff = d => offOn(d);
 function fmtHours(mins){
   const h = Math.max(0, mins) / 60;
   return (Math.round(h * 10) / 10).toFixed(1).replace(/\.0$/, "") + "h";
@@ -704,10 +815,11 @@ function minText(mins){
   const h = Math.floor(mins/60), m = mins%60;
   return (h > 0 ? h+"h " : "") + m + "m";
 }
-function schedule(){
-  const s = toMin(state.start), e = toMin(state.end);
-  const ls = toMin(state.lunchStart), le = toMin(state.lunchEnd);
-  const has = state.lunchEnabled && le > ls && ls >= s && le <= e;
+function schedule(date = new Date()){
+  const c = date === false ? state : configOn(date);
+  const s = toMin(c.start), e = toMin(c.end);
+  const ls = toMin(c.lunchStart), le = toMin(c.lunchEnd);
+  const has = c.lunchEnabled && le > ls && ls >= s && le <= e;
   return { s, e, ls, le, has, total:(e-s) - (has ? (le-ls) : 0) };
 }
 /* ---------- 薪资单位换算 ----------
@@ -717,7 +829,7 @@ function schedule(){
 const WEEKS_PER_MONTH = 52 / 12;
 const workDaysPerWeek = () => Math.max(1, 7 - (Array.isArray(state.offDays) ? state.offDays.length : 0));
 function payBasis(){
-  const hrs = schedule().total / 60;              // 每日净工时
+  const hrs = schedule(false).total / 60;              // 每日净工时
   const days = workDaysPerWeek();
   return { hrs, days, daysPerMonth: days * WEEKS_PER_MONTH };
 }
@@ -765,43 +877,48 @@ function money(){
   return { daily, perMin, perHour:perMin*60, perSec:perMin/60, today:done*perMin,
            doneMin:done, progress: sc.total > 0 ? done/sc.total : 0 };
 }
-function monthEarned(now){
-  const daily = money().daily;
-  let t = 0;
-  for (let d = 1; d <= now.getDate(); d++){
-    const dt = new Date(now.getFullYear(), now.getMonth(), d);
-    if (isOff(dt)) continue;
-    t += (d === now.getDate()) ? money().today : daily;
+
+// Configuration versions preserve the rate and schedule used for past estimates.
+function configOn(d){
+  const key = [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-");
+  let config = state;
+  for (const version of [...(state.payHistory || [])].sort((a,b) => a.date.localeCompare(b.date))) {
+    if (version.date <= key) config = version.config;
   }
-  return t;
+  // Today's editor values remain a live preview until the save is acknowledged.
+  const base = dayKey(d) === dayKey() ? state : config;
+  const override = state.dayOverrides?.[dayKey(d)];
+  return override && typeof override === "object" ? {...base,...override} : base;
 }
-function yearEarned(now){
-  const daily = money().daily;
-  let t = 0;
-  for (let m = 0; m <= now.getMonth(); m++){
-    const last = (m === now.getMonth()) ? now.getDate() : new Date(now.getFullYear(), m+1, 0).getDate();
-    for (let d = 1; d <= last; d++){
-      const dt = new Date(now.getFullYear(), m, d);
-      if (isOff(dt)) continue;
-      t += (m === now.getMonth() && d === now.getDate()) ? money().today : daily;
-    }
-  }
-  return t;
+function offOn(d){
+  const exception = (state.dayOverrides || {})[dayKey(d)];
+  if (exception === "work" || exception?.mode === "custom") return false;
+  if (exception === "off") return true;
+  return (configOn(d).offDays || []).map(Number).includes(d.getDay());
 }
+function estimateDay(d, now){
+  const c = configOn(d);
+  const start = toMin(c.start), end = toMin(c.end);
+  const ls = toMin(c.lunchStart), le = toMin(c.lunchEnd);
+  const lunch = c.lunchEnabled && le > ls && ls >= start && le <= end;
+  let until = dayKey(d) === dayKey(now) ? now.getHours()*60+now.getMinutes()+now.getSeconds()/60 : end;
+  let minutes = Math.max(0, Math.min(until,end)-start);
+  if (lunch && until > ls) minutes -= Math.max(0, Math.min(until,le)-ls);
+  minutes = offOn(d) ? 0 : Math.max(0, minutes);
+  return {minutes, amount: minutes * Math.max(0,Number(c.hourly)||0) / 60};
+}
+function estimatePeriod(now, year, field){
+  let total = 0;
+  const d = new Date(now.getFullYear(), year ? 0 : now.getMonth(), 1);
+  while(d <= now){ total += estimateDay(d, now)[field]; d.setDate(d.getDate()+1); }
+  return total;
+}
+function monthEarned(now){ return estimatePeriod(now, false, "amount"); }
+function yearEarned(now){ return estimatePeriod(now, true, "amount"); }
 /* 说明：不再提供"月薪"这个量。旧的 monthEstimate 已删，
-   涉及月的地方只报"本月已入账"，即实际赚到的钱。 */
+   涉及月的地方只报"本月预计收入"，即实际赚到的钱。 */
 /* 本月累积工时：已过的工作日按整天算，今天按实际已干算 */
-function monthMinutes(now){
-  const sc = schedule();
-  const today = money().doneMin;
-  let t = 0;
-  for (let d = 1; d <= now.getDate(); d++){
-    const dt = new Date(now.getFullYear(), now.getMonth(), d);
-    if (isOff(dt)) continue;
-    t += (d === now.getDate()) ? today : sc.total;
-  }
-  return t;
-}
+function monthMinutes(now){ return estimatePeriod(now, false, "minutes"); }
 function daysToPayday(now){
   const p = Math.max(1, Math.min(28, state.payday));
   let target = new Date(now.getFullYear(), now.getMonth(), p);
@@ -876,9 +993,112 @@ function paintForm(){
   document.documentElement.style.setProperty("--h", String(state.hue ?? 255));
 }
 
+const localISO = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+$("effectiveDate").value = localISO(new Date());
+$("effectiveDate").max = localISO(new Date());
+$("exceptionDate").value = localISO(new Date());
+function exceptionKey(){ const [y,m,d] = $("exceptionDate").value.split("-").map(Number); return `${y}-${m}-${d}`; }
+let calendarMonth = new Date(new Date().getFullYear(),new Date().getMonth(),1);
+const selectedDays = new Set();
+function paintCalendar(){
+  $("calendarMonth").textContent=`${calendarMonth.getFullYear()} 年 ${calendarMonth.getMonth()+1} 月`;
+  const root=$("workCalendar");root.replaceChildren();
+  for(const label of ["日","一","二","三","四","五","六"]) {const el=document.createElement("span");el.textContent=label;root.append(el);}
+  for(let i=0;i<calendarMonth.getDay();i++) root.append(document.createElement("span"));
+  const last=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()+1,0).getDate();
+  for(let day=1;day<=last;day++){
+    const date=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth(),day),key=dayKey(date);
+    const override=state.dayOverrides?.[key];
+    const button=document.createElement("button");button.type="button";
+    const label=typeof override==="object" ? "改班" : offOn(date) ? "休" : "班";
+    button.textContent=day+" · "+label;button.setAttribute("aria-label",localISO(date)+" "+label);button.setAttribute("aria-pressed",String(selectedDays.has(key)));
+    if(override) button.dataset.override="true";
+    button.addEventListener("click",()=>{
+      if(selectedDays.has(key)) selectedDays.delete(key);else selectedDays.add(key);
+      $("exceptionDate").value=localISO(date);paintException();
+    });root.append(button);
+  }
+  $("calendarSelection").textContent=selectedDays.size ? `已选 ${selectedDays.size} 天，点击下方操作批量应用。` : "点击日期多选，也可输入日期单独设置。";
+}
+function paintException(){
+  const value=state.dayOverrides?.[exceptionKey()] || "";
+  const mode=typeof value==="object" ? "custom" : value;
+  document.querySelectorAll("#exceptionMode button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.mode===mode)));
+  $("customShift").hidden=mode!=="custom";
+  if(mode==="custom") {
+    $("shiftStart").value=value.start;$("shiftEnd").value=value.end;$("shiftLunch").checked=!!value.lunchEnabled;
+  }
+  $("exceptionHint").textContent=mode==="off" ? "所选日期休假，不计算工时。" : mode==="work" ? "所选日期按默认作息补班。" : mode==="custom" ? "设置当天时段后点击应用。" : "沿用每周排班。";
+  paintCalendar();
+  const list=$("exceptionList");list.replaceChildren();
+  for(const [key,entry] of Object.entries(state.dayOverrides||{}).sort((a,b)=>keyTime(a[0])-keyTime(b[0]))) {
+    const row=document.createElement("div");row.style.cssText="display:flex;align-items:center;gap:8px;margin:6px 0;flex-wrap:wrap";
+    const label=document.createElement("span");label.textContent=key+" · "+(entry==="off"?"休假":entry==="work"?"补班":entry.start+"–"+entry.end);
+    const edit=document.createElement("button");edit.className="btn ghost";edit.textContent="修改";
+    edit.onclick=()=>{selectedDays.clear();const [y,m,d]=key.split("-").map(Number);$("exceptionDate").value=localISO(new Date(y,m-1,d));paintException();};
+    const remove=document.createElement("button");remove.className="btn ghost";remove.textContent="删除";
+    remove.onclick=()=>{state.dayOverrides={...state.dayOverrides};delete state.dayOverrides[key];paintException();paintStats();paintPreviews();persistState();};
+    row.append(label,edit,remove);list.append(row);
+  }
+}
+function applyDays(value){
+  state.dayOverrides={...state.dayOverrides};
+  const keys=selectedDays.size ? [...selectedDays] : [exceptionKey()];
+  for(const key of keys) {if(value) state.dayOverrides[key]=value;else delete state.dayOverrides[key];}
+  paintException();paintStats();paintPreviews();persistState();
+}
+$("exceptionDate").addEventListener("change",()=>{selectedDays.clear();paintException();});
+document.querySelectorAll("#exceptionMode button").forEach(b=>b.addEventListener("click",()=>{
+  if(b.dataset.mode==="custom") {$("customShift").hidden=false;return;}
+  applyDays(b.dataset.mode);
+}));
+$("applyShift").addEventListener("click",()=>{
+  const start=$("shiftStart").value,end=$("shiftEnd").value;
+  if(!start || !end || start>=end) {$("exceptionHint").textContent="下班时间需晚于上班时间。";return;}
+  applyDays({mode:"custom",start,end,lunchEnabled:$("shiftLunch").checked});
+});
+$("monthPrev").addEventListener("click",()=>{calendarMonth.setMonth(calendarMonth.getMonth()-1);paintCalendar();});
+$("monthNext").addEventListener("click",()=>{calendarMonth.setMonth(calendarMonth.getMonth()+1);paintCalendar();});
+$("advancedSchedule").addEventListener("toggle",()=>{if(!$("advancedSchedule").open){selectedDays.clear();paintCalendar();}});
+$("calendarClear").addEventListener("click",()=>{selectedDays.clear();paintCalendar();});
+paintException();
+$("effectiveDate").min = (state.payHistory || []).map(v => v.date).sort().pop() || "";
+$("waterDate").value = localISO(new Date());
+$("waterDate").max = localISO(new Date());
+function waterDateKey(){ const [y,m,d] = $("waterDate").value.split("-").map(Number); return `${y}-${m}-${d}`; }
+function paintWaterDate(){
+  const key = waterDateKey(), meta = (state.waterMeta || {})[key] || {};
+  $("waterCount").value = (state.waterLog || {})[key] || 0;
+  $("historyGoal").value = meta.goal || state.waterGoal;
+  $("historyMl").value = meta.cupMl || state.cupMl;
+}
+$("waterDate").addEventListener("change", paintWaterDate);
+$("saveWaterDay").addEventListener("click", () => {
+  if (!["waterDate","waterCount","historyGoal","historyMl"].every(id => $(id).value && $(id).reportValidity())) return;
+  if (!native) { $("waterDayStatus").textContent = "请在 App 内保存历史记录"; return; }
+  post("setWaterDay", {date:$("waterDate").value, cups:Number($("waterCount").value), goal:Number($("historyGoal").value), cupMl:Number($("historyMl").value), request:++saveRequest});
+  $("waterDayStatus").textContent = "正在保存…";
+});
+paintWaterDate();
+let saveRequest = 0;
+let saveWatchdog;
+function saveStatus(text){
+  clearTimeout(saveTimer);
+  $("savedTip").textContent = text;
+  $("savedTip").classList.add("on");
+}
 function persistState(){
-  if (native) { post("saveConfig", {data: state}); return; }
-  try { localStorage.setItem("niuma.state", JSON.stringify(state)); } catch(e){}
+  clearTimeout(persistTimer);
+  const request = ++saveRequest;
+  saveStatus("正在保存…");
+  clearTimeout(saveWatchdog);
+  if (native) {
+    post("saveConfig", {data: {...state, effectiveDate: $("effectiveDate").value}, request});
+    saveWatchdog = setTimeout(() => saveStatus("尚未确认保存，请点保存重试"), 5000);
+    return;
+  }
+  try { localStorage.setItem("niuma.state", JSON.stringify(state)); flashSaved(); }
+  catch(e){ saveStatus("保存失败，请检查磁盘空间后重试"); }
 }
 
 function num(v){ return v.toLocaleString("zh-CN", {minimumFractionDigits:2, maximumFractionDigits:2}); }
@@ -935,8 +1155,12 @@ function cupsToday(){
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 function paintWater(){
+  const meta=state.waterMeta?.[dayKey()] || {};
+  for(const [id,value] of [["todayWaterCount",cupsToday()],["todayWaterGoal",meta.goal||state.waterGoal],["todayWaterMl",meta.cupMl||state.cupMl]]) {
+    if(document.activeElement!==$(id)) $(id).value=value;
+  }
   $("wCups").textContent = cupsToday();
-  $("wGoalTxt").textContent = Math.max(1, Math.round(Number(state.waterGoal) || 4));
+  $("wGoalTxt").textContent = Math.max(1, Math.round(Number(state.waterMeta?.[dayKey()]?.goal ?? state.waterGoal) || 4));
   paintLog();
 }
 
@@ -970,14 +1194,15 @@ function paintLog(){
   for (let i = LOG_DAYS - 1; i >= 0; i--){
     const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
     const k = dayKey(d);
-    days.push({ d, n: i === 0 ? cupsToday() : logCups(k) });
+    const meta = (state.waterMeta || {})[k];
+    days.push({ d, n: i === 0 ? cupsToday() : logCups(k), goal:meta?.goal, ml:meta?.cupMl });
   }
   const peak = Math.max(goal, ...days.map(x => x.n));
   bars.style.setProperty("--goal-top", (100 - (goal / peak) * 100).toFixed(1) + "%");
   bars.innerHTML = days.map((x, i) => {
     const h = x.n === 0 ? 4 : Math.max(9, Math.round((x.n / peak) * 100));
-    const cls = ["wb", x.n >= goal ? "hi" : "", x.n === 0 ? "zero" : ""].filter(Boolean).join(" ");
-    const label = `${x.d.getMonth() + 1}月${x.d.getDate()}日 · ${x.n} 杯`;
+    const cls = ["wb", x.goal && x.n >= x.goal ? "hi" : "", x.n === 0 ? "zero" : ""].filter(Boolean).join(" ");
+    const label = `${x.d.getMonth() + 1}月${x.d.getDate()}日 · ${x.n} 杯 · ${x.goal ? "目标 " + x.goal + " 杯，每杯 " + x.ml + "ml" : "历史目标与杯容量未记录"}`;
     return `<i class="${cls}" style="height:${h}%" title="${label}" aria-label="${label}"></i>`;
   }).join("");
   if (daysRow){
@@ -987,10 +1212,11 @@ function paintLog(){
   }
   const rec = days.filter(x => x.n > 0);
   const sum = days.reduce((a, x) => a + x.n, 0);
-  const hit = days.filter(x => x.n >= goal).length;
-  const cupMl = Number(state.cupMl) > 0 ? Number(state.cupMl) : 500;
+  const hit = days.filter(x => x.goal && x.n >= x.goal).length;
+  const volume = days.reduce((a,x) => a + (x.ml ? x.n*x.ml : 0), 0);
+  const unknown = rec.some(x => !x.ml);
   $("wLogSum").innerHTML = rec.length
-    ? `<b>${rec.length}</b> 天有记录 · 平均 <b>${(sum / rec.length).toFixed(1)}</b> 杯 · 共 <b>${(sum * cupMl / 1000).toFixed(1)}</b> L`
+    ? `<b>${rec.length}</b> 天有记录 · 平均 <b>${(sum / rec.length).toFixed(1)}</b> 杯 · 共 <b>${(volume / 1000).toFixed(1)}</b> L${unknown ? "（不含容量未知的旧记录）" : ""}`
     : `还没有记录，点上面的 <b>＋</b> 记第一杯`;
   $("wLogHit").textContent = rec.length ? `达标 ${hit} 天` : "";
   $("wLog").classList.toggle("is-empty", !rec.length);
@@ -1003,6 +1229,13 @@ function adjustWater(delta){
   recordWater(state.water.cups);
   paintWater(); paintPreviews(); debouncePersist();
 }
+$("applyTodayWater").addEventListener("click",()=>{
+  if(!["todayWaterCount","todayWaterGoal","todayWaterMl"].every(id=>$(id).value && $(id).reportValidity())) return;
+  if(native) {
+    saveStatus("正在保存…");
+    post("setWaterDay",{date:localISO(new Date()),cups:Number($("todayWaterCount").value),goal:Number($("todayWaterGoal").value),cupMl:Number($("todayWaterMl").value),request:++saveRequest});
+  }
+});
 $("wPlus").addEventListener("click", () => adjustWater(1));
 $("wMinus").addEventListener("click", () => adjustWater(-1));
 ["waterGoal","cupMl"].forEach(k => {
@@ -1042,9 +1275,47 @@ document.querySelectorAll(".ti").forEach(inp => {
   });
 });
 $("resetText").addEventListener("click", () => {
-  state.texts = {}; state.quips = {};
-  paintTexts(); persistState(); paintPreviews(); flashSaved();
+  state.texts = {}; state.quips = {}; state.quipChoices = {}; paintPhraseManager();
+  paintTexts(); persistState(); paintPreviews();
 });
+
+const PHRASES = {"working": ["今天的努力，正在一点点积累。", "今天预计收入可以换 {奖励数量}{奖励单位}{奖励名称}。", "忙了一阵，放松一下肩膀。", "今天已喝 {杯数} 杯水，慢慢喝就好。", "偶尔抬头，看看远处。", "距离下班还有 {剩余时间}。"], "lunch": ["午休时间，安心吃饭。", "先歇一会儿，下午再继续。", "吃饱了下午才有力气继续。"], "done": ["下班了，接下来是自己的时间。", "今天预计赚了 {今日收入}，辛苦了。", "今天辛苦了，好好休息。", "今天就到这里。"], "before": ["还没开工，先喝口水。", "今天也按自己的节奏来。", "还没到上班时间，先从容准备。"], "off": ["今天休息，安心安排自己的时间。", "做点自己喜欢的事。", "休息也是生活的一部分。", "休息日，也记得适时喝水。"]};
+function phraseOptions(kind){
+  const choices = state.quipChoices?.[kind];
+  if (Array.isArray(choices)) return choices;
+  const custom = state.quips?.[kind];
+  if (typeof custom === "string" && custom.trim()) return [{text:custom, enabled:true}];
+  return (PHRASES[kind] || PHRASES.working).map(text => ({text,enabled:true}));
+}
+const phraseNames = {working:"上班",lunch:"午休",done:"下班",before:"开工前",off:"休息日"};
+function paintPhraseManager(){
+  const root = $("phraseGroups"); root.replaceChildren();
+  for (const kind of Object.keys(phraseNames)) {
+    const group = document.createElement("section"); group.className="tgroup";
+    const title = document.createElement("h3"); title.textContent=phraseNames[kind]; title.className="tk";group.append(title);
+    const choices = phraseOptions(kind);
+    choices.forEach((choice,index) => {
+      const row=document.createElement("label");row.style.cssText="display:flex;gap:8px;align-items:start;margin:10px 0;font-size:12px;line-height:1.6";
+      const check=document.createElement("input");check.type="checkbox";check.checked=!!choice.enabled;
+      const text=document.createElement("span");text.textContent=choice.text;
+      check.addEventListener("change",()=>{choices[index].enabled=check.checked;savePhraseChoices(kind,choices);});
+      row.append(check,text);group.append(row);
+    });
+    const input=document.createElement("textarea");input.className="ti";input.style.cssText="width:100%;height:68px;padding:9px;resize:vertical";input.maxLength=2000;input.placeholder="添加自己的句子，每行一条";input.setAttribute("aria-label",phraseNames[kind]+"自定义鼓励语");group.append(input);
+    const add=document.createElement("button");add.type="button";add.className="btn ghost";add.textContent="添加并选中";
+    add.addEventListener("click",()=>{
+      const added=input.value.split(/\n/).map(x=>x.trim().slice(0,200)).filter(Boolean);
+      for(const text of added) if(!choices.some(x=>x.text===text)) choices.push({text,enabled:true});
+      savePhraseChoices(kind,choices.slice(0,100));paintPhraseManager();
+    });group.append(add);root.append(group);
+  }
+  $("phraseInterval").value=String(state.quipInterval||30);
+}
+function savePhraseChoices(kind,choices){
+  state.quipChoices={...state.quipChoices,[kind]:choices};persistState();paintPreviews();
+}
+$("phraseInterval").addEventListener("change",()=>{state.quipInterval=Number($("phraseInterval").value);persistState();paintPreviews();});
+paintPhraseManager();
 
 /* ============================================================
    预览
@@ -1068,10 +1339,14 @@ function previewQuery(){
   p.set("rewardUnit", state.rewardUnit);
   /* 预览要看得见喝水与自定义文案 */
   p.set("water", String(cupsToday()));
-  p.set("goal", String(state.waterGoal || 4));
-  p.set("cup", String(state.cupMl || 500));
+  p.set("goal", String(state.waterMeta?.[dayKey()]?.goal ?? state.waterGoal ?? 4));
+  p.set("cup", String(state.waterMeta?.[dayKey()]?.cupMl ?? state.cupMl ?? 500));
   p.set("txt", JSON.stringify(state.texts || {}));
   p.set("quips", JSON.stringify(state.quips || {}));
+  p.set("quipChoices", JSON.stringify(state.quipChoices || {}));
+  p.set("quipInterval", String(state.quipInterval||30));
+  p.set("payHistory", JSON.stringify(state.payHistory || []));
+  p.set("dayOverrides", JSON.stringify(state.dayOverrides || {}));
   if (previewKind) p.set("state", previewKind);
   return p.toString();
 }
@@ -1102,6 +1377,7 @@ document.querySelectorAll("#previewState button").forEach(button => {
 let saveTimer;
 function flashSaved(){
   const t = $("savedTip");
+  t.textContent = "已保存";
   t.classList.add("on");
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => t.classList.remove("on"), 1800);
@@ -1121,24 +1397,39 @@ $("save").addEventListener("click", () => {
   });
   state.lunchEnabled = $("lunchToggle").getAttribute("aria-checked") === "true";
   persistState();
-  flashSaved();
   paintStats();
   paintPreviews();
 });
 
+let resetBackup = null;
 $("reset").addEventListener("click", () => {
+  resetBackup = JSON.parse(JSON.stringify(state));
+  $("undoReset").hidden = false;
+  $("effectiveDate").value = localISO(new Date());
   /* 恢复默认只动配置：喝水记录是攒下来的数据，不能被一起抹掉 */
   Object.assign(state, DEFAULTS, {
     ui: state.ui,
     water: state.water,
     waterLog: state.waterLog || {},
     texts: {},
-    quips: {}
+    quips: {}, quipChoices: {}, quipInterval: 30
   });
-  paintForm(); paintDays(); paintTexts(); paintStats(); paintPreviews();
+  paintForm(); paintDays(); paintTexts(); paintPhraseManager(); paintStats(); paintPreviews();
   persistState();
 });
 
+$("undoReset").addEventListener("click", () => {
+  if (!resetBackup) return;
+  const live = {water:state.water,waterLog:state.waterLog,waterMeta:state.waterMeta,ui:state.ui,payHistory:state.payHistory};
+  state = Object.assign({},resetBackup,live);
+  $("effectiveDate").value = localISO(new Date());
+  resetBackup = null; $("undoReset").hidden = true;
+  paintForm(); paintDays(); paintTexts(); paintPhraseManager(); paintException(); paintStats(); paintPreviews(); persistState();
+});
+$("exportBackup").addEventListener("click", () => {
+  if (native) post("exportBackup");
+  else saveStatus("请在 App 内导出备份");
+});
 $("lunchToggle").addEventListener("click", () => {
   const on = $("lunchToggle").getAttribute("aria-checked") === "true";
   $("lunchToggle").setAttribute("aria-checked", on ? "false" : "true");
@@ -1146,7 +1437,7 @@ $("lunchToggle").addEventListener("click", () => {
   state.lunchEnabled = !on;
   applyPayInput();
   paintStats();
-  paintPreviews();
+  paintPreviews(); persistState();
 });
 
 document.querySelectorAll(".sw[data-hue]").forEach(btn => {
@@ -1178,7 +1469,7 @@ function paintGlass(){
 document.querySelectorAll("#glassSeg button").forEach(b => {
   b.addEventListener("click", () => {
     state.glass = b.dataset.glass;
-    paintGlass(); persistState(); paintPreviews(); flashSaved();
+    paintGlass(); persistState(); paintPreviews();
   });
 });
 
@@ -1196,6 +1487,7 @@ function setFace(v){
   state.face = clampFace(v);
   paintFace(); paintPreviews();
 }
+$("customFace").addEventListener("click",()=>{ $("face").focus(); $("face").select(); });
 $("face").addEventListener("input", () => {
   /* 边打边看：不写额外判空，空串本身就是"回手绘脸" */
   state.face = clampFace($("face").value);
@@ -1207,12 +1499,12 @@ $("face").addEventListener("input", () => {
 $("face").addEventListener("change", () => {
   const v = clampFace($("face").value);
   $("face").value = v;
-  setFace(v); persistState(); flashSaved();
+  setFace(v); persistState();
 });
 document.querySelectorAll("#facePicks button").forEach(b => {
   b.addEventListener("click", () => {
     setFace(b.dataset.face || "");
-    persistState(); flashSaved();
+    persistState();
   });
 });
 
@@ -1285,7 +1577,7 @@ FIELDS.forEach(k => {
     if (v) state[k] = (k === "start" || k === "end" || k === "lunchStart" || k === "lunchEnd") ? v : Number(v);
     /* 日薪/月薪是按工时分出来的：时间一改就得重新折算，否则时薪还是旧工时算的那个 */
     if (["start","end","lunchStart","lunchEnd"].includes(k)) applyPayInput();
-    paintStats(); paintPreviews();
+    paintStats(); paintPreviews(); persistState();
   });
 });
 
@@ -1311,7 +1603,6 @@ $("payInput").addEventListener("change", () => {
     state.payInput = value;
     applyPayInput();
     persistState();
-    flashSaved();
   }
   $("payInput").value = payDisplayValue();
   paintStats(); paintPreviews();
@@ -1323,8 +1614,19 @@ $("payInput").addEventListener("change", () => {
 /* 原生在窗口获得焦点时推来真实状态：只同步"两边都会改"的喝水杯数，
    其余表单项以控制台里正在编辑的值为准，避免把用户没保存的输入冲掉 */
 window.NMWD = {
+  saveResult(request, ok){
+    if (request && request !== saveRequest) return;
+    $("waterDayStatus").textContent = ok ? "" : "保存失败，请重试";
+    if (!ok) { clearTimeout(saveWatchdog); saveStatus("保存失败，输入仍保留；请重试"); return; }
+    if (request === saveRequest) { clearTimeout(saveWatchdog); flashSaved(); }
+  },
   setStore(s){
     try {
+      if (s && s.payHistory) {
+        state.payHistory = s.payHistory;
+        $("effectiveDate").min = s.payHistory.map(v => v.date).sort().pop();
+      }
+      if (s && s.waterMeta) state.waterMeta = s.waterMeta;
       if (s && s.water) state.water = Object.assign({ date:"", cups:0 }, s.water);
       /* 小组件那边每记一杯都会更新日志，这里也要跟着换，否则控制台再保存一次
          就会拿旧日志把刚记的那天盖回去 */

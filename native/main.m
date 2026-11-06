@@ -74,9 +74,9 @@ static NSString *NMWLoadStateJSON(void) {
     return (s.length > 0) ? s : @"null";
 }
 
-static void NMWSaveStateJSON(NSString *json) {
-    if (json.length == 0) return;
-    [json writeToFile:NMWStateFilePath() atomically:YES encoding:NSUTF8StringEncoding error:nil];
+static BOOL NMWSaveStateJSON(NSString *json) {
+    if (json.length == 0) return NO;
+    return [json writeToFile:NMWStateFilePath() atomically:YES encoding:NSUTF8StringEncoding error:nil];
 }
 
 static NSMutableDictionary *NMWLoadStateDict(void) {
@@ -401,7 +401,9 @@ static void NMWLog(NSString *fmt, ...) {
 
 - (void)openDashboard {
     if (_dashWindow) {
+        if (_dashWindow.isMiniaturized) [_dashWindow deminiaturize:nil];
         [_dashWindow makeKeyAndOrderFront:nil];
+        [_dashWindow orderFrontRegardless];
         [NSApp activateIgnoringOtherApps:YES];
         return;
     }
@@ -417,6 +419,7 @@ static void NMWLog(NSString *fmt, ...) {
                                                         NSWindowStyleMaskResizable)
                                                backing:NSBackingStoreBuffered
                                                  defer:NO];
+    w.contentMinSize = NSMakeSize(420, 420);
     w.title = @"牛马鼓励器 · 控制台";
     w.titlebarAppearsTransparent = YES;
     w.titleVisibility = NSWindowTitleHidden;
@@ -451,16 +454,47 @@ static void NMWLog(NSString *fmt, ...) {
     if (!message.frameInfo.isMainFrame) return;
     if ([type isEqualToString:@"saveConfig"] ||
         [type isEqualToString:@"adjustWater"] ||
+        [type isEqualToString:@"setWaterDay"] ||
         [type isEqualToString:@"setLocked"]) {
         NSMutableDictionary *state = NMWLoadStateDict();
         if ([type isEqualToString:@"saveConfig"]) {
             NSDictionary *data = body[@"data"];
             if (message.webView != _dashWeb || ![data isKindOfClass:[NSDictionary class]] ||
                 ![NSJSONSerialization isValidJSONObject:data]) return;
+            NSArray *payKeys = @[@"hourly", @"start", @"end", @"lunchEnabled", @"lunchStart", @"lunchEnd", @"offDays"];
+            NSMutableDictionary *before = [NSMutableDictionary dictionary], *after = [NSMutableDictionary dictionary];
+            for (NSString *key in payKeys) {
+                if (state[key] ?: data[key]) before[key] = state[key] ?: data[key];
+                if (data[key] ?: state[key]) after[key] = data[key] ?: state[key];
+            }
+            NSMutableArray *history = [state[@"payHistory"] isKindOfClass:[NSArray class]] ? [state[@"payHistory"] mutableCopy] : [NSMutableArray array];
+            if (!history.count) [history addObject:@{@"date": @"0001-01-01", @"config": before, @"estimated": @YES}];
+            if (![before isEqual:after]) {
+                NSDateFormatter *fmt = [[NSDateFormatter alloc] init];
+                fmt.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
+                fmt.dateFormat = @"yyyy-MM-dd";
+                NSString *today = [fmt stringFromDate:[NSDate date]];
+                NSString *effective = [data[@"effectiveDate"] isKindOfClass:[NSString class]] ? data[@"effectiveDate"] : today;
+                NSDate *parsed = [fmt dateFromString:effective];
+                if (!parsed || ![[fmt stringFromDate:parsed] isEqual:effective] || [effective compare:today] == NSOrderedDescending) effective = today;
+                for (NSDictionary *version in history) {
+                    if ([version[@"date"] compare:effective] == NSOrderedDescending) {
+                        NSNumber *request = [body[@"request"] isKindOfClass:[NSNumber class]] ? body[@"request"] : @0;
+                        [message.webView evaluateJavaScript:[NSString stringWithFormat:@"window.NMWD.saveResult(%@,false)", request] completionHandler:nil];
+                        return;
+                    }
+                }
+                // Inserting a past version must not silently override later, already recorded changes.
+                NSIndexSet *same = [history indexesOfObjectsPassingTest:^BOOL(NSDictionary *v, NSUInteger i, BOOL *stop) { return [v[@"date"] isEqual:effective]; }];
+                [history removeObjectsAtIndexes:same];
+                [history addObject:@{@"date": effective, @"config": after}];
+                [history sortUsingComparator:^NSComparisonResult(NSDictionary *a, NSDictionary *b) { return [a[@"date"] compare:b[@"date"]]; }];
+            }
+            state[@"payHistory"] = history;
             NSArray *keys = @[@"hourly", @"payUnit", @"payInput", @"start", @"end",
                 @"lunchEnabled", @"lunchStart", @"lunchEnd", @"payday", @"offDays",
                 @"hue", @"currency", @"milkTea", @"rewardName", @"rewardUnit", @"glass", @"face",
-                @"waterGoal", @"cupMl", @"texts", @"quips"];
+                @"waterGoal", @"cupMl", @"texts", @"quips", @"quipChoices", @"quipInterval", @"dayOverrides"];
             for (NSString *key in keys) {
                 if (data[key]) state[key] = data[key];
             }
@@ -472,21 +506,40 @@ static void NMWLog(NSString *fmt, ...) {
             state[@"ui"] = ui;
         } else {
             if (message.webView != _web && message.webView != _dashWeb) return;
-            NSNumber *delta = body[@"delta"];
+            BOOL editingDay = [type isEqualToString:@"setWaterDay"];
+            if (editingDay && message.webView != _dashWeb) return;
+            NSNumber *delta = editingDay ? @0 : body[@"delta"];
             if (![delta isKindOfClass:[NSNumber class]] ||
-                (delta.doubleValue != 1 && delta.doubleValue != -1)) return;
+                (!editingDay && delta.doubleValue != 1 && delta.doubleValue != -1)) return;
             NSCalendar *calendar = [[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian];
             NSDateComponents *day = [calendar components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay
                                                 fromDate:[NSDate date]];
             NSString *key = [NSString stringWithFormat:@"%ld-%ld-%ld", (long)day.year, (long)day.month, (long)day.day];
+            NSString *todayKey = key;
+            if (editingDay) {
+                NSString *date = [body[@"date"] isKindOfClass:[NSString class]] ? body[@"date"] : @"";
+                NSDateFormatter *fmt = [[NSDateFormatter alloc] init];
+                fmt.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"]; fmt.dateFormat = @"yyyy-MM-dd";
+                NSDate *parsed = [fmt dateFromString:date];
+                NSNumber *count = body[@"cups"], *goal = body[@"goal"], *ml = body[@"cupMl"];
+                if (!parsed || ![[fmt stringFromDate:parsed] isEqual:date] || [parsed compare:[NSDate date]] == NSOrderedDescending ||
+                    ![count isKindOfClass:[NSNumber class]] || count.integerValue < 0 || count.integerValue > 99 ||
+                    ![goal isKindOfClass:[NSNumber class]] || goal.integerValue < 1 || goal.integerValue > 12 ||
+                    ![ml isKindOfClass:[NSNumber class]] || ml.integerValue < 1 || ml.integerValue > 5000) return;
+                NSDateComponents *c = [calendar components:NSCalendarUnitYear|NSCalendarUnitMonth|NSCalendarUnitDay fromDate:parsed];
+                key = [NSString stringWithFormat:@"%ld-%ld-%ld", (long)c.year, (long)c.month, (long)c.day];
+            }
             NSDictionary *water = [state[@"water"] isKindOfClass:[NSDictionary class]] ? state[@"water"] : @{};
             NSMutableDictionary *log = [state[@"waterLog"] isKindOfClass:[NSDictionary class]]
                 ? [state[@"waterLog"] mutableCopy] : [NSMutableDictionary dictionary];
             id previous = [key isEqual:water[@"date"]] ? water[@"cups"] : log[key];
             NSInteger count = [previous isKindOfClass:[NSNumber class]] ? [previous integerValue] : 0;
             count = MAX(0, MIN(99, count));
-            NSNumber *cups = @(MAX(0, MIN(99, count + delta.integerValue)));
-            state[@"water"] = @{@"date": key, @"cups": cups};
+            NSNumber *cups = editingDay ? @([body[@"cups"] integerValue]) : @(MAX(0, MIN(99, count + delta.integerValue)));
+            if ([key isEqual:todayKey]) state[@"water"] = @{@"date": key, @"cups": cups};
+            NSMutableDictionary *meta = [state[@"waterMeta"] isKindOfClass:[NSDictionary class]] ? [state[@"waterMeta"] mutableCopy] : [NSMutableDictionary dictionary];
+            if (editingDay || !meta[key]) meta[key] = @{@"goal": editingDay ? body[@"goal"] : (state[@"waterGoal"] ?: @4), @"cupMl": editingDay ? body[@"cupMl"] : (state[@"cupMl"] ?: @500)};
+            state[@"waterMeta"] = meta;
             log[key] = cups;
             if (log.count > 180) {
                 NSArray *dates = [[log allKeys] sortedArrayUsingComparator:^NSComparisonResult(NSString *a, NSString *b) {
@@ -494,7 +547,7 @@ static void NMWLog(NSString *fmt, ...) {
                 }];
                 for (NSString *date in dates) {
                     if (log.count <= 180) break;
-                    if (![date isEqual:key]) [log removeObjectForKey:date];
+                    if (![date isEqual:key]) { [log removeObjectForKey:date]; [meta removeObjectForKey:date]; }
                 }
             }
             state[@"waterLog"] = log;
@@ -502,7 +555,14 @@ static void NMWLog(NSString *fmt, ...) {
         NSData *data = [NSJSONSerialization dataWithJSONObject:state options:0 error:nil];
         if (!data) return;
         NSString *json = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-        NMWSaveStateJSON(json);
+        BOOL saved = NMWSaveStateJSON(json);
+        NSNumber *request = [body[@"request"] isKindOfClass:[NSNumber class]] ? body[@"request"] : @0;
+        NSString *reply = [NSString stringWithFormat:@"window.NMWD && window.NMWD.saveResult(%@,%@)", request, saved ? @"true" : @"false"];
+        [message.webView evaluateJavaScript:reply completionHandler:nil];
+        if (!saved) {
+            [message.webView evaluateJavaScript:@"if (!window.NMWD) alert('保存失败，请检查磁盘空间后重试。')" completionHandler:nil];
+            return;
+        }
         [_web evaluateJavaScript:[NSString stringWithFormat:@"window.NMW && window.NMW.applyExternal(%@)", json]
                completionHandler:nil];
         [_dashWeb evaluateJavaScript:[NSString stringWithFormat:@"window.NMWD && window.NMWD.setStore(%@)", json]
@@ -530,6 +590,17 @@ static void NMWLog(NSString *fmt, ...) {
         // 注意不能调 reloadFromStore：它读的是 document 启动时注入的 __NIUMA_STATE__ 快照，
         // 是一份旧数据，会把刚刚 save 进来的新色相覆盖回去（表现为换色后组件不变色）。
         [_web evaluateJavaScript:@"window.NMW && window.NMW.repaint()" completionHandler:nil];
+    } else if ([type isEqualToString:@"exportBackup"]) {
+        if (message.webView != _dashWeb) return;
+        NSSavePanel *panel = [NSSavePanel savePanel];
+        panel.nameFieldStringValue = @"NiuMaWidget-backup.json";
+        panel.allowsOtherFileTypes = NO;
+        [panel beginSheetModalForWindow:_dashWindow completionHandler:^(NSModalResponse response) {
+            if (response != NSModalResponseOK) return;
+            NSError *error = nil;
+            BOOL ok = [NMWLoadStateJSON() writeToURL:panel.URL atomically:YES encoding:NSUTF8StringEncoding error:&error];
+            [self.dashWeb evaluateJavaScript:ok ? @"saveStatus('备份已导出')" : @"saveStatus('备份导出失败，请重试')" completionHandler:nil];
+        }];
     } else if ([type isEqualToString:@"pullState"]) {
         // 控制台每次获得焦点都拉一次真实状态：它的内存副本是启动时的快照，
         // 不刷新的话，之后一保存就会把小组件上刚点的喝水杯数覆盖掉。
@@ -573,6 +644,11 @@ static void NMWLog(NSString *fmt, ...) {
             [self.controller openDashboard];
         });
     }
+}
+
+- (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag {
+    [self.controller openDashboard];
+    return YES;
 }
 
 - (void)buildMenu {

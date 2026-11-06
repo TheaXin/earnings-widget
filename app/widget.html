@@ -266,6 +266,7 @@ html[data-glass="thin"] .rim{
 
 /* 锁着的时候必须常驻可见——不然用户会以为"拖不动是坏了"，
    找不到原因就永远解不开。 */
+.card[data-locked="1"] .gear,
 .card[data-locked="1"] .lock{
   opacity:1; color:var(--accent-ink);
   background:oklch(100% 0 0 / .34);
@@ -640,6 +641,10 @@ html[data-glass="thin"] .clock{
   *{animation-duration:.01ms !important; transition-duration:.01ms !important;}
   .eyes{animation:none;}
 }
+html[data-size="large"] .water .wbtn{width:30px;height:30px;font-size:19px;}
+html[data-size="medium"] .water .wbtn{width:25px;height:25px;font-size:17px;}
+html[data-size="large"] .water{gap:9px;}
+[hidden]{display:none !important;}
 </style>
 </head>
 <body>
@@ -686,7 +691,7 @@ html[data-glass="thin"] .clock{
   <div class="body">
     <div class="money-block">
       <div class="capline">
-        <span class="cap" id="cap">今天已入账</span>
+        <span class="cap" id="cap">今日预计收入</span>
         <span class="wt" id="worktime">工时 0m</span>
       </div>
       <div class="amount" id="amount">
@@ -810,6 +815,10 @@ let state = loadState();
 /* 控制台预览：URL 参数覆盖配置 */
 (function applyQuery(){
   const q = new URLSearchParams(location.search);
+  if (q.has("quipInterval")) state.quipInterval = Number(q.get("quipInterval"));
+  for (const key of ["payHistory","dayOverrides","quipChoices"]) {
+    try { if (q.has(key)) state[key] = JSON.parse(q.get(key)); } catch(e) {}
+  }
   ["hourly","payday","milkTea"].forEach(k => {
     if (q.has(k) && q.get(k) !== "" && !isNaN(+q.get(k))) state[k] = +q.get(k);
   });
@@ -850,15 +859,16 @@ let state = loadState();
    ============================================================ */
 const toMin = hhmm => { const [h,m] = hhmm.split(":").map(Number); return h*60 + m; };
 
-function schedule(){
-  const s = toMin(state.start), e = toMin(state.end);
-  const lunchS = toMin(state.lunchStart), lunchE = toMin(state.lunchEnd);
-  const hasLunch = state.lunchEnabled && lunchE > lunchS && lunchS >= s && lunchE <= e;
+function schedule(date = new Date()){
+  const c = date === false ? state : configOn(date);
+  const s = toMin(c.start), e = toMin(c.end);
+  const lunchS = toMin(c.lunchStart), lunchE = toMin(c.lunchEnd);
+  const hasLunch = c.lunchEnabled && lunchE > lunchS && lunchS >= s && lunchE <= e;
   return { s, e, lunchS, lunchE, hasLunch, total:(e - s) - (hasLunch ? (lunchE - lunchS) : 0) };
 }
 /* 休息日：默认含周末，控制台可以把任意一天加进来（比如周四） */
 const offDays = () => Array.isArray(state.offDays) ? state.offDays.map(Number) : [];
-const isOff = d => offDays().includes(d.getDay());
+const isOff = d => offOn(d);
 
 function workedMinutes(now){
   const sc = schedule();
@@ -902,28 +912,45 @@ function money(){
   });
 }
 
-function monthEarned(now){
-  const daily = pay().daily;
-  let total = 0;
-  for (let d = 1; d <= now.getDate(); d++){
-    const dt = new Date(now.getFullYear(), now.getMonth(), d);
-    if (isOff(dt)) continue;
-    total += (d === now.getDate()) ? money().today : daily;
+
+// Configuration versions preserve the rate and schedule used for past estimates.
+function configOn(d){
+  const key = [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-");
+  let config = state;
+  for (const version of [...(state.payHistory || [])].sort((a,b) => a.date.localeCompare(b.date))) {
+    if (version.date <= key) config = version.config;
   }
+  // Today's editor values remain a live preview until the save is acknowledged.
+  const base = dayKey(d) === dayKey() ? state : config;
+  const override = state.dayOverrides?.[dayKey(d)];
+  return override && typeof override === "object" ? {...base,...override} : base;
+}
+function offOn(d){
+  const exception = (state.dayOverrides || {})[dayKey(d)];
+  if (exception === "work" || exception?.mode === "custom") return false;
+  if (exception === "off") return true;
+  return (configOn(d).offDays || []).map(Number).includes(d.getDay());
+}
+function estimateDay(d, now){
+  const c = configOn(d);
+  const start = toMin(c.start), end = toMin(c.end);
+  const ls = toMin(c.lunchStart), le = toMin(c.lunchEnd);
+  const lunch = c.lunchEnabled && le > ls && ls >= start && le <= end;
+  let until = dayKey(d) === dayKey(now) ? now.getHours()*60+now.getMinutes()+now.getSeconds()/60 : end;
+  let minutes = Math.max(0, Math.min(until,end)-start);
+  if (lunch && until > ls) minutes -= Math.max(0, Math.min(until,le)-ls);
+  minutes = offOn(d) ? 0 : Math.max(0, minutes);
+  return {minutes, amount: minutes * Math.max(0,Number(c.hourly)||0) / 60};
+}
+function estimatePeriod(now, year, field){
+  let total = 0;
+  const d = new Date(now.getFullYear(), year ? 0 : now.getMonth(), 1);
+  while(d <= now){ total += estimateDay(d, now)[field]; d.setDate(d.getDate()+1); }
   return total;
 }
+function monthEarned(now){ return estimatePeriod(now, false, "amount"); }
 /* 本月累积工时：整月已过的工作日按整天算，今天按实际已干算 */
-function monthMinutes(now){
-  const sc = schedule();
-  const today = isOff(now) ? 0 : workedMinutes(now);
-  let t = 0;
-  for (let d = 1; d <= now.getDate(); d++){
-    const dt = new Date(now.getFullYear(), now.getMonth(), d);
-    if (isOff(dt)) continue;
-    t += (d === now.getDate()) ? today : sc.total;
-  }
-  return t;
-}
+function monthMinutes(now){ return estimatePeriod(now, false, "minutes"); }
 function daysToPayday(now){
   const p = Math.max(1, Math.min(28, state.payday));
   let target = new Date(now.getFullYear(), now.getMonth(), p);
@@ -1005,10 +1032,10 @@ function minText(mins){
 
 /* 休息日要显示"离下次上班还有多久"，先算出下一个开工时刻 */
 function nextWorkStart(now){
-  const sc = schedule();
-  for (let i = 0; i < 8; i++){
+  for (let i = 0; i < 366; i++){
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
     if (isOff(d)) continue;
+    const sc = schedule(d);
     const t = new Date(d.getTime());
     t.setHours(Math.floor(sc.s/60), sc.s%60, 0, 0);
     if (t > now) return t;
@@ -1075,55 +1102,26 @@ function paintCds(kind, now){
   ).join("");
 }
 
-const QUIPS = {
-  working: [
-    m => `每分钟悄悄多 <em>${state.currency}${m.perMin.toFixed(2)}</em>，你也是。`,
-    m => `今天已经赚到 <em>${(m.today / state.milkTea).toFixed(1)}</em> ${escapeText(state.rewardUnit)}${escapeText(state.rewardName)}了。`,
-    m => `别急，钱会有的。头发不一定。`,
-    m => `今天第 <em>${cups()}</em> 杯水，喝了才算活着。`,
-    m => `时薪 <em>${state.currency}${m.perHour.toFixed(1)}</em>，够买半杯水了。`,
-    m => `再撑 <em>${m.left}</em>，就自由了。`
-  ],
-  lunch: [
-    m => `午休不计薪，但饭要认真吃。`,
-    m => `上午赚了 <em>${state.currency}${fmt(m.today)}</em>，先歇会儿。`,
-    m => `吃饱了下午才有力气继续。`,
-    m => `这会儿不算钱，算活着。`
-  ],
-  done: [
-    m => `今天的份赚完了，剩下时间归你。`,
-    m => `今日入账 <em>${state.currency}${fmt(m.today)}</em>，去玩吧。`,
-    m => `下班的人最富有。`,
-    m => `明天同一时间，再来一次。`
-  ],
-  before: [
-    m => `还没开工，先喝口水。`,
-    m => `今日待入账 <em>${state.currency}${fmt(m.daily)}</em>，慢慢来。`,
-    m => `开工前的时间，不用卖。`
-  ],
-  off: [
-    m => `今天不上班，钱不涨也没关系。`,
-    m => `周四就该这样。`,
-    m => `不赚钱的这一天，才是自己的。`,
-    m => `水还是要喝，杯子照记。`
-  ]
-};
-// 自定义奖励文字作为文本转义，避免进入鼓励语的 HTML 标记。
-const escapeText = value => String(value).replace(/[&<>"']/g, ch =>
-  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[ch]);
-let quipIdx = -1;
+const PHRASES = {"working": ["今天的努力，正在一点点积累。", "今天预计收入可以换 {奖励数量}{奖励单位}{奖励名称}。", "忙了一阵，放松一下肩膀。", "今天已喝 {杯数} 杯水，慢慢喝就好。", "偶尔抬头，看看远处。", "距离下班还有 {剩余时间}。"], "lunch": ["午休时间，安心吃饭。", "先歇一会儿，下午再继续。", "吃饱了下午才有力气继续。"], "done": ["下班了，接下来是自己的时间。", "今天预计赚了 {今日收入}，辛苦了。", "今天辛苦了，好好休息。", "今天就到这里。"], "before": ["还没开工，先喝口水。", "今天也按自己的节奏来。", "还没到上班时间，先从容准备。"], "off": ["今天休息，安心安排自己的时间。", "做点自己喜欢的事。", "休息也是生活的一部分。", "休息日，也记得适时喝水。"]};
+function phraseOptions(kind){
+  const choices = state.quipChoices?.[kind];
+  if (Array.isArray(choices)) return choices;
+  const custom = state.quips?.[kind];
+  if (typeof custom === "string" && custom.trim()) return [{text:custom, enabled:true}];
+  return (PHRASES[kind] || PHRASES.working).map(text => ({text,enabled:true}));
+}
+let previousPhrase = "", lastPhraseAt = 0;
 function pickQuip(kind, m){
-  // money() 为了避开与 monthEarned 的互相递归，不返回 month；这里补齐，
-  // 否则"本月工资已完成 x%" 会算成 NaN。
-  if (m && m.month == null) m.month = monthEarned(new Date());
-  // 控制台写了自定义语录就直接用它（允许 <em> 上色）
-  const custom = state.quips && state.quips[kind];
-  if (typeof custom === "string" && custom.trim()) return custom;
-  const arr = QUIPS[kind] || QUIPS.working;
-  let i = Math.floor(Math.random() * arr.length);
-  if (arr.length > 1 && i === quipIdx) i = (i+1) % arr.length;
-  quipIdx = i;
-  return arr[i](m);
+  const choices = phraseOptions(kind).filter(x => x.enabled && typeof x.text === "string" && x.text.trim());
+  const pool = choices.length > 1 ? choices.filter(x => x.text !== previousPhrase) : choices;
+  const text = pool.length ? pool[Math.floor(Math.random()*pool.length)].text : "";
+  previousPhrase = text;
+  lastPhraseAt = Date.now();
+  const values = {"奖励数量":(m.today / Math.max(1, Number(state.milkTea)||18)).toFixed(1),
+    "奖励单位":state.rewardUnit,"奖励名称":state.rewardName,"杯数":cups(),
+    "剩余时间":m.left || leftText(),"今日收入":state.currency+fmt(m.today)};
+  // All custom text is rendered as text, including old strings with markup.
+  return text.replace(/\{([^}]+)\}/g, (match,key) => values[key] ?? match);
 }
 
 /* ============================================================
@@ -1154,7 +1152,13 @@ function setAmount(v){
 /* 小表情：state.face 为空就用手绘牛马脸（那张脸自己会随状态换眼睛），
    非空则整体换成这个字符。只换内容，不碰尺寸——尺寸仍由 .mascot 控制。 */
 /* 按"字"截断，别按 UTF-16 码元截——否则多出来的半个代理对会渲染成方块问号 */
-const clampFace = v => Array.from(String(v == null ? "" : v).trim()).slice(0, 4).join("");
+const clampFace = value => {
+  const text = String(value ?? "").trim();
+  if (typeof Intl.Segmenter === "function") {
+    return Array.from(new Intl.Segmenter(undefined, {granularity:"grapheme"}).segment(text), x => x.segment).slice(0,1).join("");
+  }
+  return Array.from(text).slice(0,4).join("");
+};
 function renderFace(){
   const box = document.querySelector(".mascot");
   const slot = $("mascotEmoji");
@@ -1169,7 +1173,8 @@ function ensureQuip(){
   if (!body || document.querySelector(".quip")) return;
   const p = document.createElement("p");
   p.className = "quip";
-  p.innerHTML = pickQuip(stateKind(new Date()), money());
+  p.textContent = pickQuip(stateKind(new Date()), money());
+  p.hidden = !p.textContent;
   body.appendChild(p);
 }
 
@@ -1185,20 +1190,20 @@ function render(first){
   $("card").dataset.state = kind;
   renderFace();
 
-  if (kind !== shownKind){
+  if (kind !== shownKind || Date.now()-lastPhraseAt >= Math.max(15, Number(state.quipInterval)||30)*1000){
     const T = kindText(kind);
     $("statusText").textContent = T.text;
     $("statusSub").textContent = T.sub;
     $("mouth").setAttribute("d", KIND[kind].mouth);
     const q = document.querySelector(".quip");
-    if (q) q.innerHTML = pickQuip(kind, m);
+    if (q) { q.textContent = pickQuip(kind, m); q.hidden = !q.textContent; }
     shownKind = kind;
   }
 
   $("clock").textContent =
     String(now.getHours()).padStart(2,"0") + ":" + String(now.getMinutes()).padStart(2,"0");
 
-  /* 主数字固定"今天已入账"；本月单独一行。不做点击切换，
+  /* 主数字固定"今日预计收入"；本月单独一行。不做点击切换，
      否则两处会同时显示同一个数字，看起来像 bug。 */
   const mainVal = Math.max(0, m.today);
   setAmount(first ? 0 : mainVal);
@@ -1207,7 +1212,7 @@ function render(first){
     a.classList.remove("bump"); void a.offsetWidth; a.classList.add("bump");
   }
   lastVal = mainVal;
-  $("cap").textContent = (window.__FORCE_STATE__ ? kind : realKind(now)) === "off" ? "今天休息，不入账" : "今天已入账";
+  $("cap").textContent = (window.__FORCE_STATE__ ? kind : realKind(now)) === "off" ? "今天休息，不入账" : "今日预计收入";
   /* 累积工时：今天已经干了多久，跟着秒表一起走 */
   const wt = $("worktime");
   if (wt){
@@ -1277,7 +1282,7 @@ function adjustWater(delta){
   renderWater(true);
 }
 function renderWater(pop){
-  const goal = Math.max(1, Math.min(12, Math.round(Number(state.waterGoal)) || 4));
+  const goal = Math.max(1, Math.min(12, Math.round(Number(state.waterMeta?.[dayKey()]?.goal ?? state.waterGoal)) || 4));
   const n = cups();
   const box = $("drops");
   const sig = goal + ":" + n;
@@ -1291,7 +1296,7 @@ function renderWater(pop){
       if (el) el.classList.add("pop");
     }
   }
-  const ml = n * (Number(state.cupMl) > 0 ? Number(state.cupMl) : 500);
+  const ml = n * (Number(state.waterMeta?.[dayKey()]?.cupMl ?? state.cupMl) || 500);
   $("wmeta").innerHTML =
     `<b>${n}</b><span class="of">/</span>${goal} 杯<span class="liter"> · ${(ml / 1000).toFixed(1)}L</span>`;
   /* 达标就把数字染成主色 —— 这是唯一允许"庆祝"的地方 */
@@ -1386,19 +1391,7 @@ window.NMW = {
   apply(patch){ Object.assign(state, patch); saveState(); lastVal = -1; shownKind = null; render(false); }
 };
 
-function yearEarned(now){
-  const daily = pay().daily;
-  let t = 0;
-  for (let mo = 0; mo <= now.getMonth(); mo++){
-    const last = (mo === now.getMonth()) ? now.getDate() : new Date(now.getFullYear(), mo+1, 0).getDate();
-    for (let d = 1; d <= last; d++){
-      const dt = new Date(now.getFullYear(), mo, d);
-      if (isOff(dt)) continue;
-      t += (mo === now.getMonth() && d === now.getDate()) ? money().today : daily;
-    }
-  }
-  return t;
-}
+function yearEarned(now){ return estimatePeriod(now, true, "amount"); }
 
 /* ============================================================
    启动
