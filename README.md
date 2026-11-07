@@ -1,4 +1,4 @@
-# 牛马鼓励器 · Earnings Widget
+# 牛马鼓励器小组件 · Earnings Widget
 
 把每天的努力看得见，也把喝水这件小事记下来。
 
