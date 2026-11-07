@@ -1,4 +1,4 @@
-# 牛马鼓励器 · Clock & Coin
+# 牛马鼓励器 · Earnings Widget
 
 把每天的努力看得见，也把喝水这件小事记下来。
 
@@ -22,7 +22,7 @@
 
 ## 1.1.0 更新
 
-[下载 macOS 通用版 App](./downloads/NiuMaWidget-macOS-universal.zip)
+[下载 macOS 通用版 App](./downloads/EarningsWidget-macOS-universal.zip)
 
 - 控制台自适应布局，预览采用统一深炭灰背景。
 - 鼓励语可按状态多选、添加自定义句子，设置随机轮播间隔。
@@ -62,13 +62,13 @@
 
 ## 安装
 
-直接使用请下载 [macOS 通用版 App](./downloads/NiuMaWidget-macOS-universal.zip)，解压后打开“牛马鼓励器.app”。支持 Apple Silicon 与 Intel Mac。
+直接使用请下载 [macOS 通用版 App](./downloads/EarningsWidget-macOS-universal.zip)，解压后打开“牛马鼓励器.app”。支持 Apple Silicon 与 Intel Mac。
 
 自行编译需要 **macOS 12+** 和 Command Line Tools（`xcode-select --install`）。
 
 ```bash
-git clone https://github.com/TheaXin/niuma-widget.git
-cd niuma-widget
+git clone https://github.com/TheaXin/earnings-widget.git
+cd earnings-widget
 ./build.sh
 open "dist/牛马鼓励器.app"
 ```
